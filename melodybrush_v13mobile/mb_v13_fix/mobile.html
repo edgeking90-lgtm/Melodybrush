@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Melody Brush — Mobile</title>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+
+<!-- ════ 캔버스 ════ -->
+<div id="canvas-wrap">
+  <canvas id="paper"></canvas>
+  <div class="pcursor" id="pcursor"></div>
+  <div id="drop-overlay">
+    <span>🎵</span>
+    <span>MIDI 파일을 여기 놓으세요</span>
+  </div>
+  <div id="drop-hint">
+    <div class="dh-icon">🎼</div>
+    <div class="dh-text">MIDI 파일을 불러오면<br>멜로디가 선으로 시각화됩니다</div>
+    <div class="dh-sub">아래 ⊕ 버튼으로 파일 선택</div>
+  </div>
+  <div id="prog-wrap">
+    <div id="prog-label">분석 중…</div>
+    <div id="prog-track"><div id="prog-bar"></div></div>
+  </div>
+</div>
+
+<!-- ════ 상단 헤더 ════ -->
+<div id="topbar">
+  <div id="topbar-logo">Melody Brush</div>
+  <div id="topbar-status">—</div>
+  <div id="topbar-menu" onclick="openSheet('layers')">☰</div>
+</div>
+
+<!-- ════ 모드탭바 ════ -->
+<div id="modebar">
+  <div class="mbtab act" id="mbtab-view" onclick="setAppMode('view')">VIEW</div>
+  <div class="mbtab"     id="mbtab-note" onclick="setAppMode('note')">NOTE</div>
+  <div class="mbtab"     id="mbtab-edit" onclick="setAppMode('edit')">EDIT</div>
+  <div class="mbtab"     id="mbtab-wire" onclick="setAppMode('wire')">WIRE</div>
+</div>
+
+<!-- ════ LOD 배지 / 미니맵 / 힌트 / 범례 ════ -->
+<div id="lod-badge"></div>
+<div id="minimap-wrap">
+  <canvas id="minimap-canvas" width="110" height="56"></canvas>
+  <div id="minimap-vp"></div>
+</div>
+<div id="hint"></div>
+<div id="gest-legend">
+  <div class="gl-item"><div class="gl-dot" style="background:#facc15"></div>ATK</div>
+  <div class="gl-item"><div class="gl-dot" style="background:#4ade80"></div>HLD</div>
+  <div class="gl-item"><div class="gl-dot" style="background:#c084fc"></div>VIB</div>
+  <div class="gl-item"><div class="gl-dot" style="background:#f97316"></div>GLI</div>
+  <div class="gl-item"><div class="gl-dot" style="background:#60a5fa"></div>DEC</div>
+  <div class="gl-item"><div class="gl-dot" style="background:#94a3b8"></div>TAIL</div>
+  <div class="gl-item"><div class="gl-dot" style="background:#f87171"></div>NSE</div>
+</div>
+
+<!-- ════ Edit FAB ════ -->
+<div id="edit-fab">
+  <div class="fab-btn act" id="fab-draw" onclick="setTool('draw')" title="Draw">✒</div>
+  <div class="fab-btn"     id="fab-catch" onclick="setTool('catch')" title="Catch">⊕</div>
+  <div class="fab-btn"     id="fab-undo" onclick="undo()" title="Undo">↶</div>
+</div>
+
+<!-- ════ 하단 툴바 ════ -->
+<div id="bottombar">
+  <div id="bottombar-main">
+    <button class="bot-btn" id="btn-load"   onclick="openSheet('input')">
+      <div class="bot-icon">📂</div><div class="bot-lbl">파일</div>
+    </button>
+    <button class="bot-btn" id="btn-tune"   onclick="openSheet('params')">
+      <div class="bot-icon">🎛</div><div class="bot-lbl">설정</div>
+    </button>
+    <button class="bot-btn act" id="btn-play" onclick="togglePlay()">
+      <div class="bot-icon" id="play-icon">▶</div><div class="bot-lbl" id="play-lbl">재생</div>
+    </button>
+    <button class="bot-btn" id="btn-export" onclick="doMidiSave()" disabled>
+      <div class="bot-icon">⬇</div><div class="bot-lbl">저장</div>
+    </button>
+    <button class="bot-btn" id="btn-stats"  onclick="openSheet('result')">
+      <div class="bot-icon">📊</div><div class="bot-lbl">분석</div>
+    </button>
+  </div>
+</div>
+
+<!-- ════ 바텀시트 ════ -->
+<div id="sheet-backdrop" onclick="closeSheet()"></div>
+<div id="panel-sheet">
+  <div id="sheet-handle"></div>
+  <div id="sheet-header">
+    <div id="sheet-title">설정</div>
+    <button id="sheet-close" onclick="closeSheet()">✕</button>
+  </div>
+  <div id="sheet-tabs">
+    <div class="stab on"  data-tab="stab-input"  onclick="switchSheetTab(this)">입력</div>
+    <div class="stab"     data-tab="stab-params"  onclick="switchSheetTab(this)">파라미터</div>
+    <div class="stab"     data-tab="stab-layers"  onclick="switchSheetTab(this)">레이어</div>
+    <div class="stab"     data-tab="stab-result"  onclick="switchSheetTab(this)">결과</div>
+  </div>
+  <div id="sheet-body">
+
+    <!-- 입력 탭 -->
+    <div class="stab-content on" id="stab-input">
+      <div class="s-file-area" onclick="document.getElementById('midiFile').click()">
+        <span>🎵</span>
+        <strong>MIDI 파일 선택</strong>
+        <span>.mid / .midi</span>
+      </div>
+      <input type="file" id="midiFile" accept=".mid,.midi">
+      <div id="midiStatus">파일을 선택하면 즉시 불러옵니다</div>
+      <button class="s-btn s-btn-grn" onclick="runDemo()">🎹 데모 보기</button>
+    </div>
+
+    <!-- 파라미터 탭 -->
+    <div class="stab-content" id="stab-params">
+      <div style="font-size:.62rem;font-weight:700;color:rgba(247,244,236,0.4);letter-spacing:.05em;text-transform:uppercase;padding-bottom:6px;border-bottom:1px solid rgba(247,244,236,0.07);">Cell 분해</div>
+      <div>
+        <div class="s-label">Cell 크기 <span class="vv" id="v_cell">80ms</span></div>
+        <input type="range" class="s-sl" id="cellMs" min="20" max="200" step="10" value="80">
+      </div>
+      <div>
+        <div class="s-label">Attack 임계 <span class="vv" id="v_atk">0.25</span></div>
+        <input type="range" class="s-sl" id="atkThr" min="0.05" max="0.60" step="0.05" value="0.25">
+      </div>
+      <div>
+        <div class="s-label">Vibrato (cent) <span class="vv" id="v_vib">40</span></div>
+        <input type="range" class="s-sl" id="vibCent" min="10" max="120" step="5" value="40">
+      </div>
+      <div>
+        <div class="s-label">Decay 기울기 <span class="vv" id="v_dec">0.15</span></div>
+        <input type="range" class="s-sl" id="decThr" min="0.05" max="0.50" step="0.05" value="0.15">
+      </div>
+
+      <div style="font-size:.62rem;font-weight:700;color:rgba(247,244,236,0.4);letter-spacing:.05em;text-transform:uppercase;padding:4px 0 6px;border-bottom:1px solid rgba(247,244,236,0.07);">Human Filter</div>
+      <div>
+        <div class="s-label">적용 강도 <span class="vv" id="v_hfstr">1.0</span></div>
+        <input type="range" class="s-sl" id="hfStrength" min="0" max="1" step="0.1" value="1.0">
+      </div>
+      <div>
+        <div class="s-label">Vibrato 최소 지속 <span class="vv" id="v_vdur">120ms</span></div>
+        <input type="range" class="s-sl" id="vibDur" min="40" max="300" step="10" value="120">
+      </div>
+      <div>
+        <div class="s-label">Glide 최소 이동 <span class="vv" id="v_gmin">80cent</span></div>
+        <input type="range" class="s-sl" id="glideMin" min="30" max="200" step="10" value="80">
+      </div>
+      <div>
+        <div class="s-label">True Change 임계 <span class="vv" id="v_tch">150cent</span></div>
+        <input type="range" class="s-sl" id="trueThr" min="80" max="300" step="10" value="150">
+      </div>
+
+      <div style="font-size:.62rem;font-weight:700;color:rgba(247,244,236,0.4);letter-spacing:.05em;text-transform:uppercase;padding:4px 0 6px;border-bottom:1px solid rgba(247,244,236,0.07);">Line 분리</div>
+      <div>
+        <div class="s-label">Gap 임계 <span class="vv" id="v_gap">250ms</span></div>
+        <input type="range" class="s-sl" id="gapThr" min="50" max="800" step="25" value="250">
+      </div>
+      <div>
+        <div class="s-label">Pitch Jump 임계 <span class="vv" id="v_pjump">500cent</span></div>
+        <input type="range" class="s-sl" id="pitchJump" min="100" max="1200" step="50" value="500">
+      </div>
+      <div>
+        <div class="s-label">최소 Note 수 <span class="vv" id="v_minn">2</span></div>
+        <input type="range" class="s-sl" id="minNotes" min="1" max="8" step="1" value="2">
+      </div>
+
+      <button class="s-btn s-btn-sec" onclick="runAnalysis()">⚙ 재분석</button>
+    </div>
+
+    <!-- 레이어 탭 -->
+    <div class="stab-content" id="stab-layers">
+      <div id="layer-panel"></div>
+      <div id="no-layers" style="font-size:.68rem;color:rgba(247,244,236,0.25);text-align:center;padding:20px 0;">
+        MIDI를 불러오면 레이어가 표시됩니다
+      </div>
+    </div>
+
+    <!-- 결과 탭 -->
+    <div class="stab-content" id="stab-result">
+      <div class="s-stat-grid">
+        <div class="s-stat"><div class="sk">Notes</div><div class="sv" id="s_notes">—</div></div>
+        <div class="s-stat"><div class="sk">Cells</div><div class="sv" id="s_cells">—</div></div>
+        <div class="s-stat"><div class="sk">Lines</div><div class="sv" id="s_lines">—</div></div>
+        <div class="s-stat"><div class="sk">Duration</div><div class="sv" id="s_dur">—</div></div>
+        <div class="s-stat" style="grid-column:span 2"><div class="sk">BPM</div><div class="sv" id="s_bpm">—</div></div>
+      </div>
+      <div style="font-size:.62rem;font-weight:700;color:rgba(247,244,236,0.4);letter-spacing:.04em;text-transform:uppercase;padding:4px 0 4px;">로그</div>
+      <div class="s-console" id="logBox"></div>
+    </div>
+
+  </div><!-- /sheet-body -->
+</div><!-- /panel-sheet -->
+
+<!-- ════════════════════════════════════════════════════════════
+     SHARED LOGIC — PC 버전과 동일한 핵심 로직
+     (state.js / midi.js / phase.js / tracking.js / flow.js /
+      render.js / playback.js / wire.js 인라인)
+════════════════════════════════════════════════════════════ -->
+
+<!-- ════ state.js ════ -->
+
+<!-- ════ midi.js (PC 버전과 동일) ════ -->
+
+<!-- ════ render.js (PC 버전과 동일) ════ -->
+
+<!-- ════ playback.js (PC 버전과 동일) ════ -->
+
+<!-- ════ mobile ui.js ════ -->
+
+<!-- ════ main.js (모바일 터치 입력) ════ -->
+
+<!-- ════ 공유 JS ════ -->
+<script src="js/state.js"></script>
+<script src="js/midi.js"></script>
+<script src="js/render.js"></script>
+<script src="js/playback.js"></script>
+<script src="js/phase.js"></script>
+<script src="js/tracking.js"></script>
+<script src="js/flow.js"></script>
+<script src="js/wire.js"></script>
+<!-- ════ 모바일 전용 JS ════ -->
+<script src="js/ui.mobile.js"></script>
+<script src="js/main.mobile.js"></script>
+</body>
+</html>
