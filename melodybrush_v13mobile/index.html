@@ -29,7 +29,7 @@
     <div class="tab-section on" id="tab-load">
       <div class="mp-label">MIDI 파일 <span style="font-size:.70rem;color:#b0a898">드래그앤드롭 가능</span></div>
       <div style="display:flex;gap:5px;align-items:center;">
-        <input type="file" class="mf" id="midiFile" accept=".mid,.midi" style="flex:1;">
+        <input type="file" class="mf" id="midiFile-sidebar" accept=".mid,.midi,audio/midi,audio/x-midi,application/octet-stream" style="flex:1;">
         <button class="pbtn" onclick="addMidiLayer()" title="MIDI 파일 추가 (새 레이어)" style="flex:none;padding:5px 8px;font-size:.70rem;">＋</button>
       </div>
       <div id="midiStatus" style="font-size:.72rem;color:#9a9490;min-height:14px;margin-top:2px;font-family:monospace;"></div>
@@ -286,6 +286,10 @@
   <!-- 단축키 힌트 -->
   <div id="shortcuts" style="display:none"></div>
 </div>
+
+<!-- iOS: display:none 컨테이너 밖에 있어야 change 이벤트 발화 -->
+<input type="file" id="midiFile" accept=".mid,.midi,audio/midi,audio/x-midi,application/octet-stream"
+  style="position:fixed;left:-300px;top:-300px;width:1px;height:1px;opacity:0;">
 
 <!-- ════ 모바일 하단 툴바 ════ -->
 <div id="mobile-bar">
@@ -2048,7 +2052,7 @@ async function runPipeline(rawTracks) {
 
 function addMidiLayer() {
   const input = document.createElement('input');
-  input.type = 'file'; input.accept = '.mid,.midi';
+  input.type = 'file'; input.accept = '.mid,.midi,audio/midi,audio/x-midi,application/octet-stream';
   input.onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
     try {
