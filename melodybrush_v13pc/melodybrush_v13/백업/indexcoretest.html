@@ -1,0 +1,3017 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Melody Brush — PC</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ════ 사이드 패널 ════ -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <div>
+      <div id="sidebar-logo">Melody Brush</div>
+      <div id="sidebar-sub">Expression Edition · PC</div>
+    </div>
+    <button id="btn-darkmode" onclick="toggleDarkMode()" title="다크 모드 전환">☀</button>
+  </div>
+
+  <div id="panel-tabs">
+    <button class="ptab on" data-tab="tab-load" onclick="switchPanelTab(this)">로드</button>
+    <button class="ptab"    data-tab="tab-view" onclick="switchPanelTab(this)">뷰</button>
+    <button class="ptab"    data-tab="tab-wire" onclick="switchPanelTab(this)">전선</button>
+  </div>
+
+  <div id="panel-scroll">
+    <!-- 로드 탭 -->
+    <div class="tab-section on" id="tab-load">
+      <div class="mp-label">MIDI 파일 <span style="font-size:.70rem;color:#b0a898">드래그앤드롭 가능</span></div>
+      <div style="display:flex;gap:5px;align-items:center;">
+        <input type="file" class="mf" id="midiFile" accept=".mid,.midi" style="flex:1;">
+        <button class="pbtn" onclick="addMidiLayer()" title="MIDI 파일 추가 (새 레이어)" style="flex:none;padding:5px 8px;font-size:.70rem;">＋</button>
+      </div>
+      <div id="midi-layer-list" style="display:none;flex-direction:column;gap:3px;margin-top:3px;"></div>
+      <div id="midiStatus" style="font-size:.72rem;color:#9a9490;min-height:14px;margin-top:2px;font-family:monospace;"></div>
+      <div id="tab-input-lines" style="display:none;">
+        <div style="height:1px;background:rgba(20,15,5,0.08);margin:2px 0;"></div>
+        <div class="mp-title">Line 목록</div>
+        <div class="line-list" id="lineList"></div>
+      </div>
+      <div style="height:1px;background:rgba(20,15,5,0.08);margin:2px 0;"></div>
+      <div class="mp-title">통계</div>
+      <div class="mp-stat-grid">
+        <div class="mp-stat"><div class="sk">Notes</div><div class="sv" id="s_notes">—</div></div>
+        <div class="mp-stat"><div class="sk">Cells</div><div class="sv" id="s_cells">—</div></div>
+        <div class="mp-stat"><div class="sk">Lines</div><div class="sv" id="s_lines">—</div></div>
+        <div class="mp-stat"><div class="sk">Duration</div><div class="sv" id="s_dur">—</div></div>
+        <div class="mp-stat" style="grid-column:span 2"><div class="sk">BPM</div><div class="sv" id="s_bpm">—</div></div>
+      </div>
+      <div class="mp-title" style="margin-top:2px;">로그</div>
+      <div class="mp-console" id="logBox"></div>
+    </div>
+
+    <!-- 뷰 탭 -->
+    <div class="tab-section" id="tab-view">
+      <div class="mp-title">Line 분리 — 연결 우선</div>
+      <div class="mp-label">Gap 임계값 — 이 이상이면 끊음</div>
+      <div class="presetrow" id="gap-presets">
+        <button class="pbtn" data-val="250" onclick="setGapPreset(this)">250ms</button>
+        <button class="pbtn" data-val="500" onclick="setGapPreset(this)">500ms</button>
+        <button class="pbtn act" data-val="800" onclick="setGapPreset(this)">800ms</button>
+        <button class="pbtn" data-val="1200" onclick="setGapPreset(this)">1200ms</button>
+      </div>
+      <input type="hidden" id="gapThr" value="800">
+      <div class="mp-label">Pitch Jump 임계값 — 이 이상이면 끊음</div>
+      <div class="presetrow" id="pjump-presets">
+        <button class="pbtn" data-val="600" onclick="setPitchPreset(this)">600c</button>
+        <button class="pbtn" data-val="900" onclick="setPitchPreset(this)">900c</button>
+        <button class="pbtn act" data-val="1200" onclick="setPitchPreset(this)">1200c</button>
+        <button class="pbtn" data-val="99999" onclick="setPitchPreset(this)">OFF</button>
+      </div>
+      <input type="hidden" id="pitchJump" value="1200">
+      <div class="mp-label">최소 Note 수 <span class="vv" id="v_minn">2</span></div>
+      <input type="range" class="msl" id="minNotes" min="1" max="8" step="1" value="2">
+      <div class="presetrow" style="flex-wrap:wrap;gap:4px;margin-top:2px;">
+        <button class="pbtn" id="btn-stp" onclick="toggleSameTrackPriority()" style="flex:none;padding:5px 8px;">Same Track 우선</button>
+        <button class="pbtn" id="btn-swc" onclick="toggleWeakConn()" style="flex:none;padding:5px 8px;">Weak 연결 표시</button>
+      </div>
+      <div style="height:1px;background:rgba(20,15,5,0.08);margin:4px 0;"></div>
+      <div class="mp-title">Expression</div>
+      <div class="mp-label">PB 범위 (semi) <span class="vv" id="v_pbr">2</span></div>
+      <input type="range" class="msl" id="pbRange" min="1" max="12" step="1" value="2">
+      <div class="mp-label">Vibrato 깊이 <span class="vv" id="v_vbpb">0.7</span></div>
+      <input type="range" class="msl" id="vibPbDepth" min="0.1" max="1.0" step="0.1" value="0.7">
+      <div class="mp-label">Glide 강도 <span class="vv" id="v_glpb">0.8</span></div>
+      <input type="range" class="msl" id="glidePb" min="0.1" max="1.0" step="0.1" value="0.8">
+      <div class="mp-label">Velocity <span class="vv" id="v_vs">1.0</span></div>
+      <input type="range" class="msl" id="velScale" min="0.5" max="1.5" step="0.1" value="1.0">
+    </div>
+
+
+    <!-- 전선 탭 -->
+    <div class="tab-section" id="tab-wire">
+      <div class="mp-title">전선 (Wire Layer)</div>
+
+      <div class="mp-label" style="font-weight:700;">적용 방식</div>
+      <div id="wire-mode-btns" style="display:flex;flex-direction:column;gap:3px;margin-bottom:4px;">
+        <button class="wmbtn act" data-wm="full"  onclick="setWireMode('full')">① 전체 연결 — 동일 피복으로 전체 덮기</button>
+        <button class="wmbtn"     data-wm="pitch" onclick="setWireMode('pitch')">② 피치별 — 음역 위상에 따라 투명도 조절</button>
+        <button class="wmbtn"     data-wm="time"  onclick="setWireMode('time')">③ 타임라인별 — 구간마다 피복 개별 조절</button>
+      </div>
+
+      <div class="mp-label">피복 색상</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;" id="wire-color-swatches">
+        <div class="wcs act" data-col="#f7f4ec" style="background:#f7f4ec;border:1.5px solid #2a2620;"></div>
+        <div class="wcs" data-col="#2a2620" style="background:#2a2620;"></div>
+        <div class="wcs" data-col="#5b6ea8" style="background:#5b6ea8;"></div>
+        <div class="wcs" data-col="#3d8f6a" style="background:#3d8f6a;"></div>
+        <div class="wcs" data-col="#a06b30" style="background:#a06b30;"></div>
+        <div class="wcs" data-col="#7a4a8a" style="background:#7a4a8a;"></div>
+      </div>
+
+      <div id="wire-opt-full">
+        <div class="mp-label">피복 투명도 <span class="vv" id="v_wire_alpha">0.92</span></div>
+        <input type="range" class="msl" id="wireAlpha" min="0" max="1" step="0.01" value="0.92">
+        <div class="mp-label">피복 두께 <span class="vv" id="v_wire_w">자동</span></div>
+        <input type="range" class="msl" id="wireWidth" min="0" max="40" step="1" value="0">
+        <div style="font-size:.70rem;color:#9a9490;margin-top:-3px;">0 = Cell 크기 기준 자동</div>
+      </div>
+
+      <div id="wire-opt-pitch" style="display:none;">
+        <div class="mp-label">고음 투명도 <span class="vv" id="v_wire_hi_a">0.30</span></div>
+        <input type="range" class="msl" id="wireHiAlpha" min="0" max="1" step="0.01" value="0.30">
+        <div class="mp-label">저음 투명도 <span class="vv" id="v_wire_lo_a">0.95</span></div>
+        <input type="range" class="msl" id="wireLoAlpha" min="0" max="1" step="0.01" value="0.95">
+        <div class="mp-label">기준 피치 <span class="vv" id="v_wire_psplit">C4</span></div>
+        <input type="range" class="msl" id="wirePitchSplit" min="36" max="96" step="1" value="60">
+        <div style="font-size:.70rem;color:#9a9490;margin-top:-3px;">기준 음보다 높으면 고음 투명도</div>
+      </div>
+
+      <div id="wire-opt-time" style="display:none;">
+        <div class="mp-label">구간 수 <span class="vv" id="v_wire_segs">4</span></div>
+        <input type="range" class="msl" id="wireSegCount" min="2" max="8" step="1" value="4">
+        <div id="wire-seg-sliders" style="display:flex;flex-direction:column;gap:2px;margin-top:2px;"></div>
+      </div>
+
+      <div style="height:1px;background:rgba(20,15,5,0.09);margin:5px 0;"></div>
+      <button class="mp-btn mp-btn-pri" id="btn-apply-wire" onclick="applyWireLayer()" disabled>선 입히기</button>
+      <div style="display:flex;gap:5px;">
+        <button class="mp-btn mp-btn-sec" id="btn-merge-wire" onclick="mergeWireLayer()" disabled style="flex:1">레이어 병합</button>
+        <button class="mp-btn mp-btn-sec" id="btn-remove-wire" onclick="removeWireLayer()" disabled style="flex:1">전선 제거</button>
+      </div>
+      <div id="wire-status" style="font-size:.72rem;color:#9a9490;font-family:monospace;min-height:14px;margin-top:2px;"></div>
+    </div>
+
+    <!-- 고급 설정 (접이식) -->
+    <div style="height:1px;background:rgba(20,15,5,0.08);margin:4px 0;"></div>
+    <button id="btn-adv" onclick="toggleAdv()" style="width:100%;border:none;background:transparent;text-align:left;font-size:.76rem;font-weight:700;color:#9a9490;padding:5px 2px;cursor:pointer;letter-spacing:.03em;">고급 설정 ▾</button>
+    <div id="adv-section" style="display:none;flex-direction:column;gap:8px;">
+      <div class="mp-title">Cell 분해</div>
+      <div class="mp-label">Cell 크기 <span class="vv" id="v_cell">80ms</span></div>
+      <input type="range" class="msl" id="cellMs" min="20" max="200" step="10" value="80">
+      <div class="mp-label">Attack 임계 <span class="vv" id="v_atk">0.25</span></div>
+      <input type="range" class="msl" id="atkThr" min="0.05" max="0.60" step="0.05" value="0.25">
+      <div class="mp-label">Vibrato (cent) <span class="vv" id="v_vib">40</span></div>
+      <input type="range" class="msl" id="vibCent" min="10" max="120" step="5" value="40">
+      <div class="mp-label">Decay 기울기 <span class="vv" id="v_dec">0.15</span></div>
+      <input type="range" class="msl" id="decThr" min="0.05" max="0.50" step="0.05" value="0.15">
+      <div class="mp-title">Human Filter</div>
+      <div class="mp-label">적용 강도 <span class="vv" id="v_hfstr">1.0</span></div>
+      <input type="range" class="msl" id="hfStrength" min="0" max="1" step="0.1" value="1.0">
+      <div class="mp-label">Vibrato 최소 지속 <span class="vv" id="v_vdur">120ms</span></div>
+      <input type="range" class="msl" id="vibDur" min="40" max="300" step="10" value="120">
+      <div class="mp-label">Glide 최소 이동 <span class="vv" id="v_gmin">80cent</span></div>
+      <input type="range" class="msl" id="glideMin" min="30" max="200" step="10" value="80">
+      <div class="mp-label">True Change 임계 <span class="vv" id="v_tch">150cent</span></div>
+      <input type="range" class="msl" id="trueThr" min="80" max="300" step="10" value="150">
+      <div class="mp-title">Expression 상세</div>
+      <div class="mp-label">CC11 Decay 곡선 <span class="vv" id="v_deccv">0.5</span></div>
+      <input type="range" class="msl" id="decCurve" min="0.1" max="1.0" step="0.1" value="0.5">
+      <button class="mp-btn mp-btn-sec" onclick="runAnalysis()">심층 분석 실행</button>
+      <button class="mp-btn mp-btn-sec" onclick="runDemo()">데모</button>
+    </div>
+  </div>
+
+  <!-- 레이어 패널 -->
+  <div id="layer-panel" style="display:none;flex-shrink:0;border-top:1px solid rgba(20,15,5,0.08);background:#f5f2eb;">
+    <div style="padding:6px 12px 4px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:.6rem;font-weight:700;color:#2a2620;letter-spacing:.05em;text-transform:uppercase;">Layers</span>
+      <span id="layer-count" style="font-size:.58rem;color:#9a9490;font-family:monospace;"></span>
+    </div>
+    <div id="layer-list" style="max-height:140px;overflow-y:auto;padding:0 8px 6px;display:flex;flex-direction:column;gap:2px;scrollbar-width:thin;scrollbar-color:rgba(20,15,5,0.15) transparent;"></div>
+  </div>
+
+  <!-- 하단 툴바 -->
+  <div id="sidebar-tools">
+    <div class="tool-row">
+      <button class="tbtn" id="btn-play" onclick="togglePlay()">▶<span class="lbl">Play</span></button>
+      <button class="tbtn act" id="btn-autofollow" onclick="toggleAutoFollow()" title="재생 시 자동 스크롤">⟳<span class="lbl">Follow</span></button>
+      <button class="tbtn" id="btn-pitchfollow" onclick="togglePitchFollow()" title="포커스 트랙 피치 따라가기">♩<span class="lbl">Pitch</span></button>
+      <button class="tbtn" id="btn-fitview" onclick="fitView()" title="전체 선 최적 맞춤">⊡<span class="lbl">맞춤</span></button>
+      <div class="tsep"></div>
+      <button class="tbtn" id="btn-export" onclick="doMidiSave()" disabled>⬇<span class="lbl">Export</span></button>
+    </div>
+    <div id="edit-tools">
+      <div style="height:1px;background:rgba(20,15,5,0.08);margin:2px 0;"></div>
+      <div class="tool-row">
+        <button class="tbtn act" id="btn-draw"  onclick="setTool('draw')">✒<span class="lbl">Draw</span></button>
+        <button class="tbtn"     id="btn-catch" onclick="setTool('catch')">⊕<span class="lbl">Catch</span></button>
+        <div class="tsep"></div>
+        <button class="tbtn"     id="btn-undo"  onclick="undo()">↶<span class="lbl">Undo</span></button>
+        <div style="flex:1"></div>
+        <div id="instr-toggle">
+          <button class="ibtn act" id="ibtn-piano"  onclick="setInstrument('piano')">🎹</button>
+          <button class="ibtn"     id="ibtn-violin" onclick="setInstrument('violin')">🎻</button>
+        </div>
+      </div>
+      <div class="tool-row">
+        <button class="tbtn" id="btn-cellinspector" onclick="toggleCellPanel()" title="Cell Inspector">⊞<span class="lbl">Cell</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 캔버스 영역 ════ -->
+<div id="paper-wrap">
+  <canvas id="paper"></canvas>
+  <div class="pcursor" id="pcursor"></div>
+  <div id="playhead-time"></div>
+
+  <!-- 드래그앤드롭 오버레이 -->
+  <div id="drop-overlay">🎵 여기에 MIDI 파일을 놓으세요</div>
+
+  <!-- 빈 화면 안내 -->
+  <div id="drop-hint">
+    <div class="dh-text">MIDI 파일을 불러오면 선으로 시각화됩니다<br>좌측 패널 → 입력 탭에서 파일을 선택하거나<br>여기에 드래그앤드롭 하세요</div>
+    <div class="dh-key">데모 보기 → 입력 탭 → [데모] 버튼</div>
+  </div>
+
+  <!-- 상단 모드바 -->
+  <div id="mode-bar">
+    <button class="mbtn act" id="mbtn-view" onclick="setAppMode('view')">View</button>
+    <button class="mbtn"     id="mbtn-note" onclick="setAppMode('note')">Note</button>
+    <button class="mbtn"     id="mbtn-edit" onclick="setAppMode('edit')">Edit</button>
+    <button class="mbtn"     id="mbtn-wire" onclick="setAppMode('wire')">Wire</button>
+  </div>
+
+  <!-- LOD 배지 -->
+  <div id="lod-badge"></div>
+  <!-- Zoom 힌트 -->
+  <div id="zoom-hint">휠: 줌 &nbsp;|&nbsp; Shift+휠: 가로 &nbsp;|&nbsp; Alt+휠: 세로<br>,./ : 가로줌 &nbsp;|&nbsp; +- : 전체줌</div>
+
+  <!-- Gesture 범례 -->
+  <div id="gest-legend">
+    <div class="gl-item"><div class="gl-dot" style="background:#facc15"></div>ATK</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#4ade80"></div>HLD</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#c084fc"></div>VIB</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#f97316"></div>GLI</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#60a5fa"></div>DEC</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#94a3b8"></div>TAIL</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#f87171"></div>NOISE</div>
+  </div>
+
+  <!-- 힌트 -->
+  <div id="hint"></div>
+
+  <!-- 진행바 -->
+  <div id="prog-wrap">
+    <div id="prog-label">분석 중…</div>
+    <div id="prog-track"><div id="prog-bar"></div></div>
+  </div>
+
+  <!-- 미니맵 -->
+  <div id="minimap-wrap">
+    <canvas id="minimap-canvas" width="280" height="140"></canvas>
+    <div id="minimap-vp"></div>
+  </div>
+
+  <!-- 단축키 힌트 -->
+  <div id="shortcuts">
+    Space: 재생/정지 &nbsp; Ctrl+Z: 되돌리기<br>
+    휠: 줌 &nbsp; 드래그: 이동<br>
+    V: View &nbsp; N: Note &nbsp; E: Edit
+  </div>
+</div>
+
+<!-- ════ state.js ════ -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   상수 / 유틸리티
+════════════════════════════════════════════════════════════ */
+const TRACK_BASE = [
+  {h:   2, s: 88, l: 58},
+  {h: 218, s: 88, l: 60},
+  {h:  38, s: 90, l: 54},
+  {h: 145, s: 80, l: 48},
+  {h: 278, s: 85, l: 63},
+  {h: 174, s: 82, l: 48},
+  {h: 328, s: 88, l: 60},
+  {h:  50, s: 92, l: 52},
+];
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => { const k = (n + h / 30) % 12; const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(255 * c).toString(16).padStart(2, '0'); };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+function trackLineColor(trackIdx, trackLineIdx) {
+  const base = TRACK_BASE[trackIdx % TRACK_BASE.length];
+  const lShift = (trackLineIdx % 5) * 7 - 14;
+  const lAdj = _darkMode ? 0 : -16;
+  const L = Math.max(28, Math.min(82, base.l + lShift + lAdj));
+  return hslToHex(base.h, base.s, L);
+}
+const TRACK_COLS_LIGHT = ['#1d4ed8','#15803d','#b45309','#7e22ce','#0e7490','#c2410c','#166534','#9d174d'];
+const TRACK_COLS_DARK  = ['#60a5fa','#4ade80','#fbbf24','#c084fc','#22d3ee','#fb923c','#86efac','#f472b6'];
+let TRACK_COLS = TRACK_COLS_LIGHT;
+const RAINBOW_COLS = ['#ff4466','#ff8800','#ffdd00','#44ff88','#00ccff','#8844ff','#ff44cc','#ff6644','#aaff00','#00ffcc'];
+const GESTURE_COL = {
+  ATTACK: '#facc15', HOLD: '#4ade80', VIBRATO: '#c084fc',
+  GLIDE: '#f97316', DECAY: '#60a5fa', TAIL: '#94a3b8', NOISE: '#f87171'
+};
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const midiToCents = midi => (midi - 69) * 100;
+
+const NOTE_NAMES_W = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function midiToName(m) { return NOTE_NAMES_W[m % 12] + (Math.floor(m / 12) - 1); }
+
+/* ════════════════════════════════════════════════════════════
+   캔버스 / 래퍼 전역 레퍼런스
+   (main.js 맨 위에서 할당)
+════════════════════════════════════════════════════════════ */
+var cv, ctx, wrap;
+
+/* ════════════════════════════════════════════════════════════
+   뷰포트
+════════════════════════════════════════════════════════════ */
+let VP = {t0: 0, t1: 10000, p0: -1800, p1: 1800};
+let DPR = 1, CW = 0, CH = 0;
+
+function tx(t) { return (t - VP.t0) / (VP.t1 - VP.t0) * CW; }
+function xt(x) { return VP.t0 + x / CW * (VP.t1 - VP.t0); }
+function ly(p) { return CH * (1 - (p - VP.p0) / (VP.p1 - VP.p0)); }
+function yl(y) { return VP.p0 + (1 - y / CH) * (VP.p1 - VP.p0); }
+
+function vpPanBy(dxPx, dyPx) {
+  const dt = dxPx / CW * (VP.t1 - VP.t0), dp = dyPx / CH * (VP.p1 - VP.p0);
+  VP.t0 -= dt; VP.t1 -= dt; VP.p0 += dp; VP.p1 += dp;
+}
+function vpZoomAt(cx, cy, factor, tFactor, pFactor) {
+  const tf = tFactor !== undefined ? tFactor : factor;
+  const pf = pFactor !== undefined ? pFactor : factor;
+  const tC = xt(cx), pC = yl(cy);
+  const tSpan = clamp((VP.t1 - VP.t0) * tf, 200, 1200000);
+  const pSpan = clamp((VP.p1 - VP.p0) * pf, 100, 7200);
+  VP.t0 = tC - cx / CW * tSpan; VP.t1 = VP.t0 + tSpan;
+  VP.p0 = pC - (1 - cy / CH) * pSpan; VP.p1 = VP.p0 + pSpan;
+}
+function autoFitVP(notes, totalMs) {
+  if (!notes.length) { VP = {t0: 0, t1: Math.max(totalMs * 1.05, 5000), p0: -1800, p1: 1800}; return; }
+  let lo = Infinity, hi = -Infinity;
+  notes.forEach(n => { const c = midiToCents(n.midi); if (c < lo) lo = c; if (c > hi) hi = c; });
+  const span = hi - lo, pad = Math.max(500, span * 0.55);
+  VP.t0 = -totalMs * 0.03; VP.t1 = totalMs * 1.08;
+  VP.p0 = lo - pad; VP.p1 = hi + pad;
+  if (VP.p1 - VP.p0 < 900) { const m = (VP.p0 + VP.p1) / 2; VP.p0 = m - 450; VP.p1 = m + 450; }
+}
+function fitView() {
+  let tMin = Infinity, tMax = -Infinity, pMin = Infinity, pMax = -Infinity;
+  midiLines.forEach(line => {
+    tMin = Math.min(tMin, line.startMs); tMax = Math.max(tMax, line.endMs);
+    (line.smoothCoreline || []).forEach(p => { pMin = Math.min(pMin, p.cents); pMax = Math.max(pMax, p.cents); });
+    if (!(line.smoothCoreline || []).length)
+      line.fibers.forEach(f => f.points.forEach(p => { pMin = Math.min(pMin, p.cents); pMax = Math.max(pMax, p.cents); }));
+  });
+  _layer.strokes.forEach(s => (s.pts || []).forEach(p => {
+    tMin = Math.min(tMin, p.time); tMax = Math.max(tMax, p.time);
+    pMin = Math.min(pMin, p.pitch); pMax = Math.max(pMax, p.pitch);
+  }));
+  if (!isFinite(tMin)) return;
+  const tSpan = Math.max(tMax - tMin, 500);
+  const pSpan = pMax - pMin;
+  const pPad = Math.max(200, pSpan * 0.22);
+  VP.t0 = tMin - tSpan * 0.03;
+  VP.t1 = tMax + tSpan * 0.05;
+  VP.p0 = pMin - pPad;
+  VP.p1 = pMax + pPad;
+  if (VP.p1 - VP.p0 < 900) { const mid = (VP.p0 + VP.p1) / 2; VP.p0 = mid - 450; VP.p1 = mid + 450; }
+  render();
+}
+
+/* ════════════════════════════════════════════════════════════
+   LOD — 5단계 줌 레벨
+════════════════════════════════════════════════════════════ */
+function getLOD() {
+  const s = VP.t1 - VP.t0;
+  if (s > 60000) return 0;
+  if (s > 15000) return 1;
+  if (s > 4000)  return 2;
+  if (s > 800)   return 3;
+  return 4;
+}
+const LOD_NAMES = ['🌲 Forest', '〰 Line', '〜 Stroke', '· Cell', '✦ Gesture'];
+
+/* ════════════════════════════════════════════════════════════
+   앱 모드
+════════════════════════════════════════════════════════════ */
+let appMode = 'view';
+let drawTool = 'draw';
+
+/* ════════════════════════════════════════════════════════════
+   분석 데이터
+════════════════════════════════════════════════════════════ */
+let midiTracks = [], allCells = [], hfResult = [], exprEvents = [];
+let rawMidiTracks = []; // parseMidi 원본 — 트랙/채널 단위 (레이어 패널용)
+let detectedBpm = 120, audioBuf = null, audioCtx2 = null;
+let midiLines = [], selectedLine = null;
+let _midiLayers = [], _globalLineIdOff = 0, _currentMidiName = 'MIDI';
+let _activeLayerIdx = null;
+let _focusedTrack = null;
+
+/* ════════════════════════════════════════════════════════════
+   Draw 레이어
+════════════════════════════════════════════════════════════ */
+let _layer = {id: 1, color: '#241f18', instrument: 'piano', strokes: []};
+let _drawing = null;
+let _catchPoint = null, _catchDragging = false;
+const PULL_FALLOFF_MS = 420;
+let _catchOrigPts = null, _catchOrigCents = 0, _catchTargetCents = 0, _catchCurCents = 0, _catchRAF = null;
+let _holdStart = null, _holdAnchor = null, _holdMoved = false, _holdRAF = null;
+const HOLD_DELAY = 400, HOLD_MAX_R = 24, HOLD_GROW = 0.014;
+let _history = [];
+
+/* ════════════════════════════════════════════════════════════
+   레이어 (MIDI 트랙별 표시/숨김)
+════════════════════════════════════════════════════════════ */
+var hiddenTracks = new Set(); // "trackIdx-ch" 형태의 key
+let wireLayer = null, wireMerged = false, wireColor = '#f7f4ec';
+let wireMode = 'full';
+let _wireDrag = null;
+
+/* ════════════════════════════════════════════════════════════
+   재생
+════════════════════════════════════════════════════════════ */
+let _activeSrcs = [], _playing = false, _playRAF = null, _playElapsed = -9999;
+let _autoFollow = true, _sameTrackPriority = false, _showWeakConn = false, _darkMode = false;
+let _pitchFollow = false;
+let _cellInspectorOpen = false;
+let _highlightedCell = null; // {t, cents, lineId}
+let _showVocalFilter = false;
+let _topLine = [], _baseLine = [], _showTopLine = false, _showBaseLine = false;
+
+/* ════════════════════════════════════════════════════════════
+   미니맵
+════════════════════════════════════════════════════════════ */
+let _mmTotalMs = 0;
+const MM_W = 280, MM_H = 140;
+</script>
+
+<!-- ════ midi.js ════ -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   MIDI PARSER
+════════════════════════════════════════════════════════════ */
+function parseMidi(buf) {
+  const u8 = new Uint8Array(buf); let pos = 0;
+  const r8 = () => u8[pos++];
+  const r16 = () => { const v = (u8[pos] << 8) | u8[pos + 1]; pos += 2; return v; };
+  const r32 = () => { const v = (u8[pos] << 24) | (u8[pos + 1] << 16) | (u8[pos + 2] << 8) | u8[pos + 3]; pos += 4; return v >>> 0; };
+  const rVL = () => { let v = 0, b; do { b = r8(); v = (v << 7) | (b & 0x7f); } while (b & 0x80); return v; };
+  if (String.fromCharCode(...u8.slice(0, 4)) !== 'MThd') throw new Error('Not a MIDI file');
+  pos += 4; r32();
+  const fmt = r16(), nTracks = r16(), tpb = r16();
+  const rawTracks = [];
+  for (let t = 0; t < nTracks; t++) {
+    const hdr = String.fromCharCode(...u8.slice(pos, pos + 4)); pos += 4;
+    if (hdr !== 'MTrk') throw new Error('Bad track header');
+    const tLen = r32(), end = pos + tLen;
+    const evs = []; let tick = 0, status = 0;
+    while (pos < end) {
+      const dt = rVL(); tick += dt; let b = u8[pos];
+      if (b & 0x80) { status = b; pos++; }
+      const cmd = status & 0xf0, ch = status & 0x0f;
+      // [FIX] meta event는 status===0xff로 직접 비교해야 함
+      // cmd = status & 0xf0 = 0xFF & 0xF0 = 0xF0 이므로 cmd===0xff는 절대 true가 안됨
+      // → 템포 이벤트가 SysEx로 오인되어 완전히 무시되던 버그
+      if (status === 0xff) {
+        const mt = r8(), ml = rVL(), md = u8.slice(pos, pos + ml); pos += ml;
+        if (mt === 0x51) evs.push({tick, type: 'tempo', uspb: (md[0] << 16) | (md[1] << 8) | md[2]});
+        if (mt === 0x2f) break;
+      } else if (cmd === 0xf0 || cmd === 0xf7) { const sl = rVL(); pos += sl; }
+      else if (cmd === 0x90 || cmd === 0x80) { const note = r8(), vel = r8(); evs.push({tick, type: (cmd === 0x90 && vel > 0) ? 'on' : 'off', ch, note, vel}); }
+      else if (cmd === 0xa0 || cmd === 0xb0 || cmd === 0xe0) { r8(); r8(); }
+      else if (cmd === 0xc0 || cmd === 0xd0) { r8(); }
+      else pos++;
+    }
+    pos = end; rawTracks.push(evs);
+  }
+  // [FIX] 기본값을 먼저 쌓지 않고, 실제 이벤트가 없을 때만 기본값(120BPM) 사용
+  // 기존 코드는 tick=0 템포 이벤트가 있을 때 기본값 500000과 실제값이 공존해
+  // tickToMs()가 tempos[0](잘못된 500000)을 prev로 시작해 속도 오차가 발생했음
+  let tempos = [];
+  rawTracks.flat().filter(e => e.type === 'tempo').sort((a, b) => a.tick - b.tick).forEach(e => tempos.push({tick: e.tick, uspb: e.uspb}));
+  if (!tempos.length || tempos[0].tick > 0) tempos.unshift({tick: 0, uspb: 500000});
+  function tickToMs(tick) {
+    let ms = 0, prev = tempos[0];
+    for (let i = 1; i < tempos.length; i++) { const t = tempos[i]; if (t.tick >= tick) break; ms += (t.tick - prev.tick) / tpb * (prev.uspb / 1000); prev = t; }
+    return ms + (tick - prev.tick) / tpb * (prev.uspb / 1000);
+  }
+  detectedBpm = Math.round(60_000_000 / tempos[0].uspb);
+  console.log('[MB] parseMidi — tpb:', tpb, '/ tempos:', tempos.map(t => `tick${t.tick}=uspb${t.uspb}`).join(', '), '/ BPM:', detectedBpm);
+  const result = [];
+  rawTracks.forEach((evs, ti) => {
+    const byChannel = {};
+    evs.forEach(e => { if (e.type !== 'on' && e.type !== 'off') return; if (!byChannel[e.ch]) byChannel[e.ch] = []; byChannel[e.ch].push(e); });
+    Object.entries(byChannel).forEach(([ch, cev]) => {
+      const open = {}, notes = [];
+      cev.forEach(e => {
+        if (e.type === 'on') open[e.note] = {tick: e.tick, vel: e.vel};
+        else if (open[e.note]) {
+          const o = open[e.note], startMs = tickToMs(o.tick), endMs = tickToMs(e.tick);
+          if (endMs - startMs > 10) notes.push({midi: e.note, startMs, endMs, durMs: endMs - startMs, velocity: o.vel, trackIdx: ti, ch: +ch});
+          delete open[e.note];
+        }
+      });
+      if (notes.length) result.push({trackIdx: ti, ch: +ch, notes: notes.sort((a, b) => a.startMs - b.startMs)});
+    });
+  });
+  if (result.length && result[0].notes.length) {
+    const n = result[0].notes[0];
+    console.log('[MB] 첫 노트 — midi:', n.midi, '/ startMs:', n.startMs.toFixed(1), '/ endMs:', n.endMs.toFixed(1), '/ durMs:', n.durMs.toFixed(1));
+    const n2 = result[0].notes[1];
+    if (n2) console.log('[MB] 두번째 노트 — startMs:', n2.startMs.toFixed(1));
+  }
+  result._bpm = detectedBpm; return result;
+}
+
+/* ════════════════════════════════════════════════════════════
+   AUDIO META
+════════════════════════════════════════════════════════════ */
+function extractFrameMeta(ab, t0Ms, t1Ms) {
+  const sr = ab.sampleRate, ch = ab.getChannelData(0);
+  const s0 = Math.max(0, Math.floor(t0Ms / 1000 * sr)), s1 = Math.min(ch.length, Math.ceil(t1Ms / 1000 * sr));
+  if (s1 <= s0) return {rms: 0, brightness: 0, pitchHz: 0, confidence: 0};
+  const frame = ch.slice(s0, s1), n = frame.length;
+  let sum2 = 0; for (let i = 0; i < n; i++) sum2 += frame[i] * frame[i];
+  const rms = Math.sqrt(sum2 / n);
+  let hi = 0, tot = 0, prev = 0;
+  for (let i = 0; i < n; i++) { const s = frame[i], h = s - prev * 0.82; prev = s; hi += h * h; tot += s * s; }
+  const brightness = tot > 1e-6 ? Math.sqrt(hi / n) / Math.sqrt(tot / n) : 0;
+  let pitchHz = 0, confidence = 0;
+  if (rms > 0.008) {
+    const minL = Math.floor(sr / 1000), maxL = Math.floor(sr / 70);
+    let bL = -1, bC = 0, mean = 0;
+    for (let i = 0; i < n; i++) mean += frame[i]; mean /= n;
+    for (let lag = minL; lag <= maxL && lag < n; lag++) {
+      let c = 0, eA = 0, eB = 0; const lim = Math.min(n - lag, 512);
+      for (let i = 0; i < lim; i++) { const a = frame[i] - mean, b = frame[i + lag] - mean; c += a * b; eA += a * a; eB += b * b; }
+      const norm = c / Math.sqrt(eA * eB + 1e-9); if (norm > bC) { bC = norm; bL = lag; }
+    }
+    if (bL > 0 && bC > 0.3) { pitchHz = sr / bL; confidence = bC; }
+  }
+  return {rms: +rms.toFixed(5), brightness: +Math.min(1, brightness).toFixed(4), pitchHz: +pitchHz.toFixed(2), confidence: +confidence.toFixed(4)};
+}
+
+/* ════════════════════════════════════════════════════════════
+   CELL DECOMPOSE
+════════════════════════════════════════════════════════════ */
+function decomposNote(note, cellMs, atkThr, vibCent, decThr, ab) {
+  const cells = [], dur = note.durMs, nCell = Math.max(1, Math.ceil(dur / cellMs));
+  const vel = note.velocity / 127, useAudio = !!ab;
+  const frames = [];
+  for (let i = 0; i < nCell; i++) {
+    const t0 = note.startMs + i * cellMs, t1 = Math.min(note.startMs + (i + 1) * cellMs, note.endMs);
+    if (useAudio) { frames.push(extractFrameMeta(ab, t0, t1)); }
+    else {
+      const r = i / Math.max(1, nCell - 1), atkF = Math.min(0.15, 2 / nCell), decF = Math.max(0.75, 1 - 3 / nCell);
+      let rms;
+      if (r < atkF) rms = vel * (r / atkF) * 0.12;
+      else if (r > decF) rms = vel * (1 - (r - decF) / (1 - decF)) * 0.10;
+      else rms = vel * (0.085 + Math.sin(r * Math.PI) * 0.015);
+      frames.push({rms, brightness: 0.7 - r * 0.4 + (i === 0 ? 0.15 : 0), pitchHz: 440 * Math.pow(2, (note.midi - 69) / 12), confidence: (r < 0.05 || r > 0.92) ? 0.45 + vel * 0.3 : 0.7 + vel * 0.25});
+    }
+  }
+  const maxRms = frames.reduce((a, f) => f.rms > a ? f.rms : a, 1e-6);
+  const pitchDrifts = frames.map(f => { if (!f.pitchHz || f.confidence < 0.3) return 0; return 69 + 12 * Math.log2(f.pitchHz / 440) - note.midi; });
+  const smDrift = pitchDrifts.map((_, i) => { const lo = Math.max(0, i - 1), hi = Math.min(pitchDrifts.length - 1, i + 1); let s = 0, c = 0; for (let j = lo; j <= hi; j++) { s += pitchDrifts[j]; c++; } return s / c; });
+  const vibratoDepths = smDrift.map((_, i) => {
+    if (i < 2 || i > nCell - 3) return 0;
+    const win = smDrift.slice(Math.max(0, i - 3), Math.min(nCell, i + 4));
+    const range = win.reduce((a, b) => b > a ? b : a, -Infinity) - win.reduce((a, b) => b < a ? b : a, Infinity);
+    let sc = 0; for (let j = 1; j < win.length; j++) if (Math.sign(win[j]) !== Math.sign(win[j - 1])) sc++;
+    const vibThresh = Math.max(0.01, (vibCent / 100) * 0.08);
+    return range > vibThresh && sc >= 2 ? Math.min(1, range / (vibCent / 100)) : 0;
+  });
+  for (let i = 0; i < nCell; i++) {
+    const f = frames[i], r = i / Math.max(1, nCell - 1);
+    const t0 = note.startMs + i * cellMs, t1 = Math.min(note.startMs + (i + 1) * cellMs, note.endMs);
+    const energy = +Math.min(1, f.rms / maxRms).toFixed(4);
+    const brightness = +Math.min(1, f.brightness).toFixed(4);
+    const harmonicRatio = +Math.min(1, f.confidence * (0.6 + energy * 0.4)).toFixed(4);
+    const vibratoDepth = +vibratoDepths[i].toFixed(4);
+    const pitchDrift = +smDrift[i].toFixed(4);
+    const pitchSlope = i > 0 ? +(smDrift[i] - smDrift[i - 1]).toFixed(6) : 0;
+    const confidence = +f.confidence.toFixed(4);
+    const ePrev = i > 0 ? Math.min(1, frames[i - 1].rms / maxRms) : 0;
+    const eNext = i < nCell - 1 ? Math.min(1, frames[i + 1].rms / maxRms) : 0;
+    const attackSpeed = +Math.max(0, energy - ePrev).toFixed(4);
+    const decaySpeed = +Math.max(0, energy - eNext).toFixed(4);
+    let gesture;
+    if (i === 0 || attackSpeed > atkThr) gesture = 'ATTACK';
+    else if (i === nCell - 1 && nCell > 2) gesture = 'TAIL';
+    else if (decaySpeed > decThr && r > 0.5) gesture = 'DECAY';
+    else if (vibratoDepth > 0.15) gesture = 'VIBRATO';
+    else if (Math.abs(pitchSlope) > 0.08) gesture = 'GLIDE';
+    else if (energy < 0.04) gesture = 'NOISE';
+    else gesture = 'HOLD';
+    cells.push({t0, t1, noteRef: note, gesture, pitch: +(note.midi + pitchDrift).toFixed(4), energy, brightness, harmonicRatio, vibratoDepth, pitchDrift, confidence, attackSpeed, decaySpeed, pitchSlope, cellIndex: i, cellTotal: nCell, fromAudio: useAudio});
+  }
+  return cells;
+}
+
+/* ════════════════════════════════════════════════════════════
+   HUMAN FILTER
+════════════════════════════════════════════════════════════ */
+function runHumanFilter(notes, vibDurMs, glideMinCent, trueThrCent, strength) {
+  const result = [];
+  for (let i = 1; i < notes.length; i++) {
+    const prev = notes[i - 1], cur = notes[i];
+    const gap = cur.startMs - prev.endMs, pitchDiff = Math.abs(cur.midi - prev.midi) * 100;
+    const overlap = prev.endMs > cur.startMs;
+    const prevTail = (prev.cells || []).slice(-3), curHead = (cur.cells || []).slice(0, 3);
+    const boundaryVib = [...prevTail, ...curHead].reduce((s, c) => s + c.vibratoDepth, 0) / Math.max(1, prevTail.length + curHead.length);
+    const prevEnergy = prevTail.length ? prevTail[prevTail.length - 1].energy : 0;
+    const curEnergy = curHead.length ? curHead[0].energy : 0;
+    const energyJump = Math.abs(curEnergy - prevEnergy);
+    let verdict;
+    if (strength < 0.05) { verdict = pitchDiff >= trueThrCent ? 'TRUE_CHANGE' : gap > 400 ? 'PHRASE_BREAK' : 'TRUE_CHANGE'; }
+    else {
+      const vibScale = 1 + (1 - strength) * 3, glideScale = 1 + (1 - strength) * 2;
+      if (boundaryVib > 0.25 * vibScale && pitchDiff < 200) verdict = 'VIBRATO';
+      else if (overlap && pitchDiff < glideMinCent / vibScale) verdict = 'VIBRATO';
+      else if (gap < vibDurMs && pitchDiff < glideMinCent / vibScale) verdict = 'VIBRATO';
+      else if (pitchDiff < trueThrCent / glideScale && gap < 80 && energyJump < 0.3) verdict = 'GLIDE';
+      else if (pitchDiff >= trueThrCent) verdict = 'TRUE_CHANGE';
+      else if (gap > 400) verdict = 'PHRASE_BREAK';
+      else verdict = 'TRUE_CHANGE';
+    }
+    result.push({fromNote: prev, toNote: cur, pitchDiff, gap, verdict, boundaryVib: +boundaryVib.toFixed(3), energyJump: +energyJump.toFixed(3)});
+  }
+  return result;
+}
+
+/* ════════════════════════════════════════════════════════════
+   BUILD LINES / FIBER / CORELINE
+════════════════════════════════════════════════════════════ */
+function buildLines(tracks, idOffset=0, layerIdx=0) {
+  const gapThr = +document.getElementById('gapThr').value;
+  const pitchThrS = +document.getElementById('pitchJump').value / 100;
+  const minNotes = +document.getElementById('minNotes').value;
+  const cellMs = +document.getElementById('cellMs').value;
+  const effGapThr = _sameTrackPriority ? gapThr * 1.5 : gapThr;
+  const result = []; let lineId = idOffset;
+  const trackLineCount = {};
+  tracks.forEach(tr => {
+    const notes = tr.notes; if (!notes.length) return;
+    if (trackLineCount[tr.trackIdx] === undefined) trackLineCount[tr.trackIdx] = 0;
+    let curLine = newLine(lineId++, tr.trackIdx, tr.ch); curLine._layerIdx = layerIdx; curLine._trackLineIdx = trackLineCount[tr.trackIdx]++; curLine.notes.push(notes[0]);
+    for (let i = 1; i < notes.length; i++) {
+      const prev = notes[i - 1], cur = notes[i];
+      const gap = cur.startMs - prev.endMs, pitchDiff = Math.abs(cur.midi - prev.midi);
+      const overlap = cur.startMs < prev.endMs;
+      const hardCut = (!overlap && gap > effGapThr * 2) || pitchDiff > pitchThrS * 2;
+      const softCut = !hardCut && ((!overlap && gap > effGapThr) || pitchDiff > pitchThrS);
+      if (hardCut || (softCut && !_showWeakConn)) {
+        if (curLine.notes.length >= minNotes) result.push(finalizeLine(curLine, cellMs));
+        curLine = newLine(lineId++, tr.trackIdx, tr.ch); curLine._layerIdx = layerIdx; curLine._trackLineIdx = trackLineCount[tr.trackIdx]++;
+      } else {
+        cur._weakConn = softCut;
+      }
+      curLine.notes.push(cur);
+    }
+    if (curLine.notes.length >= minNotes) result.push(finalizeLine(curLine, cellMs));
+  });
+  return result;
+}
+function newLine(id, trackIdx, ch) { return {id, trackIdx, ch, notes: [], fibers: [], coreline: [], smoothCoreline: [], gestureSummary: {}, pitchRange: [0, 0], startMs: 0, endMs: 0}; }
+function makeFiber(note, fiberIdx, lineId, cellMs) {
+  const cells = note.cells || [];
+  const gs = cells.reduce((a, c) => { a[c.gesture] = (a[c.gesture] || 0) + 1; return a; }, {});
+  let wSum = 0, wPitch = 0; cells.forEach(c => { wSum += c.energy; wPitch += c.pitch * c.energy; });
+  const avgPitch = wSum > 0 ? wPitch / wSum : note.midi;
+  const energy = cells.reduce((s, c) => s + c.energy, 0) / Math.max(1, cells.length);
+  const points = cells.map(c => ({t: (c.t0 + c.t1) / 2, pitch: c.pitch, cents: midiToCents(c.pitch), energy: c.energy, gesture: c.gesture, fiberIdx}));
+  return {id: fiberIdx, lineId, note, cells, startMs: note.startMs, endMs: note.endMs, avgPitch: +avgPitch.toFixed(3), energy: +energy.toFixed(3), gestureSummary: gs, dominantGesture: Object.entries(gs).sort((a, b) => b[1] - a[1])[0]?.[0] || 'HOLD', points, weakConn: !!note._weakConn};
+}
+function finalizeLine(line, cellMs) {
+  const notes = line.notes;
+  line.startMs = notes[0].startMs; line.endMs = notes[notes.length - 1].endMs;
+  let minP = Infinity, maxP = -Infinity;
+  notes.forEach(n => { if (n.midi < minP) minP = n.midi; if (n.midi > maxP) maxP = n.midi; });
+  line.pitchRange = [minP, maxP];
+  line.fibers = notes.map((n, i) => makeFiber(n, i, line.id, cellMs));
+  line.coreline = line.fibers.flatMap(f => f.points);
+  line.smoothCoreline = buildSmoothCoreline(line);
+  line.gestureSummary = line.fibers.reduce((a, f) => { Object.entries(f.gestureSummary).forEach(([g, n]) => { a[g] = (a[g] || 0) + n; }); return a; }, {});
+  line.layerIdx = line._layerIdx || 0;
+  line.color = trackLineColor(line.trackIdx, line._trackLineIdx || 0);
+  line.label = `L${line.id} T${line.trackIdx} ch${line.ch}`;
+  return line;
+}
+function buildSmoothCoreline(line) {
+  // ── VOCAL CENTER LINE ──────────────────────────────────────
+  // 비브라토·잔떨림을 "주변 흔들림"으로 흡수하고,
+  // 사람이 흥얼거릴 때 따라가는 중심 흐름만 추출.
+  // ──────────────────────────────────────────────────────────
+
+  // 1) 모든 fiber 점을 시간순으로 수집
+  const raw = [];
+  line.fibers.forEach(fiber => {
+    if (fiber.points.length) {
+      fiber.points.forEach(p => raw.push({t: p.t, cents: p.cents, energy: p.energy || 0.5}));
+    } else {
+      const cents = midiToCents(fiber.note.midi);
+      const energy = fiber.note.velocity / 127;
+      raw.push({t: fiber.startMs,  cents, energy});
+      raw.push({t: fiber.endMs,    cents, energy});
+    }
+  });
+  if (!raw.length) return [];
+  raw.sort((a, b) => a.t - b.t);
+
+  // 2) 에너지 가중 가우시안 이동평균으로 비브라토 흡수
+  //    윈도우 120ms ≈ 비브라토 1주기(5~8Hz) 이상을 평탄화
+  const SMOOTH_MS = 120;
+  const smoothed = raw.map((p, i) => {
+    let wSum = 0, wCents = 0;
+    for (let j = i; j >= 0 && raw[j].t >= p.t - SMOOTH_MS * 2; j--) {
+      const dt = p.t - raw[j].t;
+      const w = Math.exp(-dt * dt / (SMOOTH_MS * SMOOTH_MS)) * (raw[j].energy || 0.5);
+      wSum += w; wCents += raw[j].cents * w;
+    }
+    for (let j = i + 1; j < raw.length && raw[j].t <= p.t + SMOOTH_MS * 2; j++) {
+      const dt = raw[j].t - p.t;
+      const w = Math.exp(-dt * dt / (SMOOTH_MS * SMOOTH_MS)) * (raw[j].energy || 0.5);
+      wSum += w; wCents += raw[j].cents * w;
+    }
+    return {t: p.t, cents: wSum > 0 ? wCents / wSum : p.cents, energy: p.energy};
+  });
+
+  // 3) 80ms 간격으로 다운샘플 — 점 밀도를 줄여 스플라인이 자연스럽게 흐르게 함
+  const STEP_MS = 80;
+  const result = [];
+  let lastT = -Infinity;
+  smoothed.forEach(p => {
+    if (p.t >= lastT + STEP_MS) { result.push(p); lastT = p.t; }
+  });
+  // 마지막 점 보장
+  const last = smoothed[smoothed.length - 1];
+  if (last && result[result.length - 1]?.t < last.t - 10) result.push(last);
+
+  return result;
+}
+
+/* ════════════════════════════════════════════════════════════
+   보컬 가이드라인 스코어링
+════════════════════════════════════════════════════════════ */
+function scoreVocalLine(line) {
+  const pts = line.smoothCoreline || [];
+  if (pts.length < 3) return 0;
+
+  // 평균 피치 (A4=0, C4=-900, C5=300)
+  const avgCents = pts.reduce((s, p) => s + p.cents, 0) / pts.length;
+
+  // 보컬 음역 적합도: E4 중심(-350c), ±900c 폭 → Gaussian
+  const pitchScore = Math.exp(-Math.pow((avgCents + 350) / 900, 2));
+
+  // 멜로디 움직임 점수: 너무 안 움직이면(드론) 패널티, 너무 많이 움직이면(노이즈) 패널티
+  // 이상적인 변화량: 40c/step (부드러운 멜로디) — 정규분포로 양방향 패널티
+  let changeSum = 0;
+  for (let i = 1; i < pts.length; i++) changeSum += Math.abs(pts[i].cents - pts[i-1].cents);
+  const avgChange = changeSum / (pts.length - 1);
+  const contourScore = Math.exp(-Math.pow((avgChange - 40) / 55, 2));
+
+  // 에너지
+  const avgEnergy = pts.reduce((s, p) => s + (p.energy || 0.5), 0) / pts.length;
+
+  // 길이 (log scale)
+  const dur = line.endMs - line.startMs;
+  const durScore = Math.min(1, Math.log(1 + dur / 2000) / Math.log(6));
+
+  return pitchScore * 0.30 + contourScore * 0.40 + avgEnergy * 0.15 + durScore * 0.15;
+}
+
+function scoreAllVocalLines() {
+  if (!midiLines.length) {
+    document.getElementById('test-diag-out').textContent = 'MIDI를 먼저 로드하세요';
+    return;
+  }
+  const VOCAL_TOP_N = 5;
+  midiLines.forEach(l => { l.vocalScore = scoreVocalLine(l); });
+  const sorted = [...midiLines].sort((a, b) => b.vocalScore - a.vocalScore);
+  const cutoff = sorted[Math.min(VOCAL_TOP_N - 1, sorted.length - 1)]?.vocalScore || 0;
+  midiLines.forEach(l => { l.isVocalCandidate = l.vocalScore >= cutoff && l.vocalScore > 0.08; });
+  const count = midiLines.filter(l => l.isVocalCandidate).length;
+  const topLines = sorted.slice(0, 8).map((l, i) =>
+    `  ${i+1}. L${l.id} ${l.isVocalCandidate ? '★' : ' '} score=${l.vocalScore.toFixed(3)}`
+  ).join('\n');
+  document.getElementById('test-diag-out').textContent =
+    `보컬 후보: ${count}개 / 전체 ${midiLines.length}개\n${topLines}`;
+  render();
+}
+
+function toggleVocalFilter() {
+  _showVocalFilter = !_showVocalFilter;
+  const btn = document.getElementById('btn-vocal-filter');
+  btn.textContent = _showVocalFilter ? '👁 보컬 필터 ON' : '👁 보컬 필터 OFF';
+  btn.style.background = _showVocalFilter
+    ? 'rgba(255,215,0,0.20)' : 'rgba(80,160,255,0.13)';
+  btn.style.color = _showVocalFilter ? '#ffd700' : '#80c8ff';
+  btn.style.borderColor = _showVocalFilter
+    ? 'rgba(255,215,0,0.35)' : 'rgba(80,160,255,0.25)';
+  render();
+}
+
+/* ════════════════════════════════════════════════════════════
+   EXPRESSION ENGINE
+════════════════════════════════════════════════════════════ */
+function runExpressionEngine() {
+  if (!allCells.length) return [];
+  const events = [], vs = +document.getElementById('velScale').value;
+  const pbSemi = +document.getElementById('pbRange').value, pbScale = 8191 / pbSemi;
+  const vbDepth = +document.getElementById('vibPbDepth').value;
+  const glDepth = +document.getElementById('glidePb').value;
+  const decCv = +document.getElementById('decCurve').value;
+  midiTracks.forEach((tr, trIdx) => {
+    const ch = trIdx % 15, safeCh = ch >= 9 ? ch + 1 : ch;
+    tr.notes.forEach(n => {
+      const vel = Math.round(clamp(n.velocity * vs, 1, 127));
+      events.push({tMs: n.startMs, type: 'noteOn', ch: safeCh, val1: n.midi, val2: vel});
+      events.push({tMs: n.endMs, type: 'noteOff', ch: safeCh, val1: n.midi, val2: 0});
+    });
+    events.push({tMs: 0, type: 'pitchBend', ch: safeCh, raw: 0});
+    tr.notes.forEach(n => {
+      const cells = n.cells || [], nCell = cells.length; if (!nCell) return;
+      const decStart = Math.floor(nCell * 0.65); let lastCC11 = -1;
+      cells.forEach((c, i) => {
+        if (i < decStart) return;
+        const r = (i - decStart) / Math.max(1, nCell - 1 - decStart);
+        const cc11 = Math.round(clamp(100 * Math.pow(1 - r, 1 + decCv), 5, 100));
+        if (Math.abs(cc11 - lastCC11) >= 4) { events.push({tMs: c.t0, type: 'cc', ch: safeCh, val1: 11, val2: cc11}); lastCC11 = cc11; }
+      });
+      events.push({tMs: n.endMs + 1, type: 'cc', ch: safeCh, val1: 11, val2: 100});
+    });
+  });
+  events.sort((a, b) => { if (a.tMs !== b.tMs) return a.tMs - b.tMs; const o = {pitchBend: 0, cc: 1, noteOn: 2, noteOff: 3}; return (o[a.type] || 0) - (o[b.type] || 0); });
+  return events;
+}
+
+/* ════════════════════════════════════════════════════════════
+   FINAL MIDI BUILDER
+════════════════════════════════════════════════════════════ */
+function buildFinalMidi(events, bpm) {
+  const tpb = 480, uspb = Math.round(60_000_000 / bpm);
+  const msToTick = ms => Math.round(ms / 1000 * (bpm / 60) * tpb);
+  function varLen(v) { const b = [v & 0x7f]; v >>= 7; while (v > 0) { b.unshift((v & 0x7f) | 0x80); v >>= 7; } return b; }
+  const byChannel = {};
+  events.forEach(e => { const k = e.ch; if (!byChannel[k]) byChannel[k] = []; byChannel[k].push(e); });
+  const trackBytes = Object.values(byChannel).map(evs => {
+    const all = [{tMs: 0, _data: [0xff, 0x51, 0x03, (uspb >> 16) & 0xff, (uspb >> 8) & 0xff, uspb & 0xff]}, ...evs];
+    all.sort((a, b) => a.tMs - b.tMs);
+    const track = []; let lastTick = 0;
+    all.forEach(e => {
+      const tick = msToTick(e.tMs), dt = Math.max(0, tick - lastTick); lastTick = tick;
+      varLen(dt).forEach(b => track.push(b));
+      if (e._data) { e._data.forEach(b => track.push(b)); return; }
+      switch (e.type) {
+        case 'noteOn': track.push(0x90 | e.ch, e.val1, e.val2); break;
+        case 'noteOff': track.push(0x80 | e.ch, e.val1, 0); break;
+        case 'cc': track.push(0xb0 | e.ch, e.val1, e.val2); break;
+        case 'pitchBend': { const pb14 = clamp((e.raw || 0) + 8192, 0, 16383); track.push(0xe0 | e.ch, pb14 & 0x7f, (pb14 >> 7) & 0x7f); } break;
+      }
+    });
+    track.push(0x00, 0xff, 0x2f, 0x00); return track;
+  });
+  const nTracks = trackBytes.length;
+  const header = [0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x01, (nTracks >> 8) & 0xff, nTracks & 0xff, (tpb >> 8) & 0xff, tpb & 0xff];
+  const out = [...header];
+  trackBytes.forEach(tr => {
+    out.push(0x4d, 0x54, 0x72, 0x6b);
+    out.push((tr.length >> 24) & 0xff, (tr.length >> 16) & 0xff, (tr.length >> 8) & 0xff, tr.length & 0xff);
+    tr.forEach(b => out.push(b));
+  });
+  return new Uint8Array(out);
+}
+</script>
+
+<!-- ════ phase.js ════ -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   Phase 계산 (실험 구역)
+   MIDI → Phase 변환 로직이 여기에 들어갑니다.
+
+   사용 예정 흐름:
+     parseMidi(buf)
+       ↓
+     buildPhases(notes)   ← 이 파일
+       ↓
+     trackPhases(phases)  ← tracking.js
+       ↓
+     buildFlowLines(...)  ← flow.js
+       ↓
+     render()
+════════════════════════════════════════════════════════════ */
+
+/**
+ * 노트 배열로부터 Phase 목록을 생성합니다.
+ * 각 Phase는 하나의 "표현 단위"를 나타냅니다.
+ *
+ * @param {Array} notes - parseMidi 결과의 note 배열
+ * @returns {Array} phases - Phase 객체 배열
+ */
+function buildPhases(notes) {
+  // TODO: Phase 알고리즘 구현
+  // 현재는 빈 배열 반환 (기존 파이프라인에 영향 없음)
+  return [];
+}
+</script>
+
+<!-- ════ tracking.js ════ -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   Tracking 계산 (실험 구역)
+   Phase 결과를 받아 Tracking 데이터를 만듭니다.
+════════════════════════════════════════════════════════════ */
+
+/**
+ * Phase 배열을 받아 Tracking 결과를 반환합니다.
+ *
+ * @param {Array} phases - buildPhases() 결과
+ * @returns {Array} tracks - Tracking 결과 배열
+ */
+function trackPhases(phases) {
+  // TODO: Tracking 알고리즘 구현
+  return [];
+}
+</script>
+
+<!-- ════ flow.js ════ -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   Flow Line 변환 (실험 구역)
+   Phase + Tracking → 눈에 보이는 Flow Line
+════════════════════════════════════════════════════════════ */
+
+/**
+ * Phase와 Tracking 결과를 Flow Line으로 변환합니다.
+ * Flow Line은 render()에서 직접 그릴 수 있는 형태입니다.
+ *
+ * @param {Array} phases   - buildPhases() 결과
+ * @param {Array} tracks   - trackPhases() 결과
+ * @returns {Array} flowLines - [{pts: [{t, cents}], color, ...}]
+ */
+function buildFlowLines(phases, tracks) {
+  // TODO: Flow Line 변환 구현
+  return [];
+}
+</script>
+
+<!-- ════ render.js ════ -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   종이 질감
+════════════════════════════════════════════════════════════ */
+let _texCanvas = null;
+function buildTexture() {
+  const t = document.createElement('canvas');
+  t.width = Math.max(1, Math.round(CW)); t.height = Math.max(1, Math.round(CH));
+  const tc = t.getContext('2d');
+  const n = Math.round(CW * CH * 0.00028);
+  for (let i = 0; i < n; i++) {
+    const x = Math.random() * CW, y = Math.random() * CH;
+    const sh = _darkMode ? 255 : (Math.random() < 0.5 ? 0 : 255);
+    tc.fillStyle = `rgba(${sh},${sh},${sh},${(0.008 + Math.random() * 0.014).toFixed(3)})`;
+    const w = 0.5 + Math.random() * 1.0; tc.fillRect(x, y, w, w);
+  }
+  _texCanvas = t;
+}
+function resize() {
+  DPR = window.devicePixelRatio || 1;
+  const r = document.getElementById('paper-wrap').getBoundingClientRect();
+  CW = r.width; CH = r.height;
+  cv.width = CW * DPR; cv.height = CH * DPR;
+  cv.style.width = CW + 'px'; cv.style.height = CH + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  console.log('[MB] resize() — CW:', CW, '/ CH:', CH);
+  buildTexture(); render();
+}
+
+/* ════════════════════════════════════════════════════════════
+   유틸리티
+════════════════════════════════════════════════════════════ */
+function hexToRgba(hex, a) {
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/* ════════════════════════════════════════════════════════════
+   전선 렌더링
+════════════════════════════════════════════════════════════ */
+function drawWireLayer() {
+  if (!wireLayer) return;
+  ctx.save(); ctx.beginPath(); ctx.rect(-20, -20, CW + 40, CH + 40); ctx.clip();
+  wireLayer.lines.forEach(wl => {
+    const line = midiLines.find(l => l.id === wl.lineId);
+    const w = line ? calcWireWidth(line) : 16;
+    const pts = wl.pts; if (pts.length < 2) return;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (wireMode === 'full') {
+      const alpha = getWireAlpha();
+      ctx.strokeStyle = `rgba(20,15,5,${alpha * 0.16})`; ctx.lineWidth = w + 3; _drawCatmullRom(pts); ctx.stroke();
+      ctx.strokeStyle = hexToRgba(wireColor, alpha); ctx.lineWidth = w; _drawCatmullRom(pts); ctx.stroke();
+    } else {
+      for (let i = 1; i < pts.length; i++) {
+        const alpha = getWireAlphaForPt(pts[i], wl.lineId);
+        const x1 = tx(pts[i - 1].t), y1 = ly(pts[i - 1].cents), x2 = tx(pts[i].t), y2 = ly(pts[i].cents);
+        ctx.strokeStyle = `rgba(20,15,5,${alpha * 0.14})`; ctx.lineWidth = w + 3;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      }
+      for (let i = 1; i < pts.length; i++) {
+        const alpha = getWireAlphaForPt(pts[i], wl.lineId);
+        const x1 = tx(pts[i - 1].t), y1 = ly(pts[i - 1].cents), x2 = tx(pts[i].t), y2 = ly(pts[i].cents);
+        ctx.strokeStyle = hexToRgba(wireColor, alpha); ctx.lineWidth = w;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      }
+    }
+    if (wl.merged) {
+      ctx.fillStyle = 'rgba(220,90,40,0.75)';
+      pts.forEach((pt, i) => { if (i % 3 !== 0) return; ctx.beginPath(); ctx.arc(tx(pt.t), ly(pt.cents), 3, 0, Math.PI * 2); ctx.fill(); });
+    }
+  });
+  ctx.restore();
+}
+
+/* ════════════════════════════════════════════════════════════
+   Coreline / Fiber / Cell 렌더링
+════════════════════════════════════════════════════════════ */
+function drawSmoothCoreline(pts, col, lineW, alpha, isSel, glowBoost=0) {
+  if (pts.length < 2) return;
+  const bW = lineW * 1.15;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(-20, -20, CW + 40, CH + 40); ctx.clip();
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.globalAlpha = alpha;
+  const drawPath = () => {
+    if (pts.length >= 3) _drawCatmullRom(pts);
+    else { ctx.beginPath(); ctx.moveTo(tx(pts[0].t), ly(pts[0].cents)); for (let i = 1; i < pts.length; i++) ctx.lineTo(tx(pts[i].t), ly(pts[i].cents)); }
+  };
+  if (isSel || glowBoost > 0) {
+    ctx.strokeStyle = hexToRgba(col, isSel ? 0.28 : 0.15); ctx.lineWidth = bW + 7 + glowBoost * 0.5; drawPath(); ctx.stroke();
+  }
+  ctx.strokeStyle = hexToRgba(col, 0.18); ctx.lineWidth = bW + 3; drawPath(); ctx.stroke();
+  ctx.shadowColor = hexToRgba(col, 0.45);
+  ctx.shadowBlur = 1.5 + glowBoost;
+  ctx.strokeStyle = hexToRgba(col, 0.97); ctx.lineWidth = bW; drawPath(); ctx.stroke();
+  ctx.shadowBlur = 0;
+  // 점: 선과 자연스럽게 녹아드는 크기 (10% 증가, 투명도 살짝 낮춤)
+  pts.forEach(p => {
+    const cx2 = tx(p.t), cy2 = ly(p.cents);
+    if (cx2 < -8 || cx2 > CW + 8 || cy2 < -8 || cy2 > CH + 8) return;
+    ctx.beginPath(); ctx.arc(cx2, cy2, (2.75 + (p.energy || 0.5) * 2.2), 0, Math.PI * 2);
+    ctx.fillStyle = hexToRgba(col, 0.72); ctx.fill();
+  });
+  ctx.globalAlpha = 1; ctx.restore();
+}
+function _drawCatmullRom(pts) {
+  ctx.beginPath(); const n = pts.length;
+  ctx.moveTo(tx(pts[0].t), ly(pts[0].cents));
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(n - 1, i + 2)];
+    const x0 = tx(p0.t), y0 = ly(p0.cents), x1 = tx(p1.t), y1 = ly(p1.cents), x2 = tx(p2.t), y2 = ly(p2.cents), x3 = tx(p3.t), y3 = ly(p3.cents);
+    const cp1x = x1 + (x2 - x0) / 6, cp1y = y1 + (y2 - y0) / 6, cp2x = x2 - (x3 - x1) / 6, cp2y = y2 - (y3 - y1) / 6;
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x2, y2);
+  }
+}
+function drawFiberGesture(line, alpha) {
+  const lod = getLOD();
+  line.fibers.forEach((fiber, fi) => {
+    const pts = fiber.points; if (pts.length < 2) return;
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.globalAlpha = alpha;
+    if (lod === 1) {
+      ctx.beginPath(); ctx.moveTo(tx(pts[0].t), ly(pts[0].cents));
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(tx(pts[i].t), ly(pts[i].cents));
+      ctx.strokeStyle = hexToRgba(line.color, 0.28); ctx.lineWidth = 2; ctx.stroke();
+    } else {
+      for (let i = 1; i < pts.length; i++) {
+        const col = GESTURE_COL[pts[i].gesture] || '#888';
+        ctx.beginPath(); ctx.moveTo(tx(pts[i - 1].t), ly(pts[i - 1].cents)); ctx.lineTo(tx(pts[i].t), ly(pts[i].cents));
+        ctx.strokeStyle = hexToRgba(col, 0.75); ctx.lineWidth = 2.5; ctx.stroke();
+      }
+    }
+    if (lod === 2 && fi < line.fibers.length - 1) {
+      const a2 = fiber.points[fiber.points.length - 1], b2 = line.fibers[fi + 1].points[0];
+      if (a2 && b2) {
+        ctx.beginPath(); ctx.moveTo(tx(a2.t), ly(a2.cents)); ctx.lineTo(tx(b2.t), ly(b2.cents));
+        ctx.strokeStyle = `rgba(100,90,70,${0.15 * alpha})`; ctx.lineWidth = 0.7; ctx.setLineDash([3, 5]); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+    if (fi < line.fibers.length - 1 && line.fibers[fi + 1].weakConn) {
+      const endPt = fiber.points[fiber.points.length - 1];
+      const startPt = line.fibers[fi + 1].points[0];
+      if (endPt && startPt) {
+        ctx.beginPath(); ctx.moveTo(tx(endPt.t), ly(endPt.cents)); ctx.lineTo(tx(startPt.t), ly(startPt.cents));
+        ctx.strokeStyle = hexToRgba(line.color, 0.55); ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 6]); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+    ctx.globalAlpha = 1; ctx.restore();
+  });
+}
+function drawCellDots(line, alpha) {
+  ctx.save();
+  line.fibers.forEach(fiber => {
+    fiber.cells.forEach(cell => {
+      const cx = tx((cell.t0 + cell.t1) / 2), cy = ly(midiToCents(cell.pitch));
+      if (cx < -8 || cx > CW + 8 || cy < -8 || cy > CH + 8) return;
+      const col = GESTURE_COL[cell.gesture] || '#888';
+      ctx.beginPath(); ctx.arc(cx, cy, 2 + cell.energy * 3, 0, Math.PI * 2);
+      ctx.fillStyle = hexToRgba(col, 0.5 * cell.energy * alpha); ctx.fill();
+    });
+  });
+  ctx.restore();
+}
+
+/* ════════════════════════════════════════════════════════════
+   Draw 레이어 (붓 선)
+════════════════════════════════════════════════════════════ */
+function buildBrushPath(pts) {
+  const n = pts.length, w = new Array(n).fill(3.4);
+  for (let i = 0; i < n; i++) {
+    let speed = i === 0 ? (n > 1 ? dist2(pts, 0, 1) / Math.max(1, pts[1].time - pts[0].time) : 0.2) : dist2(pts, i - 1, i) / Math.max(1, pts[i].time - pts[i - 1].time);
+    let ww = Math.max(2.1, Math.min(4.6, 3.5 - (speed - 0.25) * 1.6));
+    const u = n > 1 ? i / (n - 1) : 0.5;
+    let taper = 1; if (u < 0.12) taper = 0.45 + 0.55 * (u / 0.12); else if (u > 0.88) taper = 0.45 + 0.55 * ((1 - u) / 0.12);
+    w[i] = ww * taper;
+  }
+  const P = pts.map(p => ({x: tx(p.time), y: ly(p.pitch)}));
+  if (n < 3) return P.map((p, i) => ({x: p.x, y: p.y, w: w[i] || 3}));
+  const out = []; out.push({x: P[0].x, y: P[0].y, w: w[0]});
+  for (let i = 0; i < P.length - 1; i++) {
+    const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || p2;
+    for (let t = 0.2; t <= 1.0001; t += 0.2) {
+      const tt = Math.min(t, 1), t2 = tt * tt, t3 = t2 * tt;
+      const x = 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * tt + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3);
+      const y = 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * tt + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3);
+      out.push({x, y, w: w[i] + (w[i + 1] - w[i]) * tt});
+    }
+  }
+  return out;
+}
+function dist2(pts, i, j) { return Math.hypot(tx(pts[j].time) - tx(pts[i].time), ly(pts[j].pitch) - ly(pts[i].pitch)); }
+function drawBrushStroke(pts, isLive) {
+  if (pts.length < 2) return;
+  const path = buildBrushPath(pts); ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = isLive ? 'rgba(36,31,24,0.15)' : 'rgba(36,31,24,0.12)';
+  for (let i = 1; i < path.length; i++) { ctx.lineWidth = (path[i - 1].w + path[i].w) / 2 + 5; ctx.beginPath(); ctx.moveTo(path[i - 1].x, path[i - 1].y); ctx.lineTo(path[i].x, path[i].y); ctx.stroke(); }
+  ctx.strokeStyle = isLive ? 'rgba(28,23,17,0.92)' : 'rgba(20,16,11,0.95)';
+  for (let i = 1; i < path.length; i++) { ctx.lineWidth = (path[i - 1].w + path[i].w) / 2; ctx.beginPath(); ctx.moveTo(path[i - 1].x, path[i - 1].y); ctx.lineTo(path[i].x, path[i].y); ctx.stroke(); }
+  ctx.restore();
+}
+function drawBlot(p, r, a) {
+  if (r <= 1) return; const x = tx(p.time), y = ly(p.pitch); ctx.save();
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+  grad.addColorStop(0, `rgba(18,14,10,${0.5 * a})`); grad.addColorStop(0.6, `rgba(18,14,10,${0.22 * a})`); grad.addColorStop(1, 'rgba(18,14,10,0)');
+  ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+
+/* ════════════════════════════════════════════════════════════
+   메인 렌더
+════════════════════════════════════════════════════════════ */
+function render() {
+  if (!ctx || !cv) { console.warn('[MB] render(): ctx/cv 미초기화'); return; }
+  if (CW === 0 || CH === 0) { console.warn('[MB] render(): CW/CH=0'); return; }
+  ctx.clearRect(0, 0, CW, CH);
+  if (_texCanvas) ctx.drawImage(_texCanvas, 0, 0, CW, CH);
+  if (midiLines.length) {
+    const lod = getLOD();
+    const coreW = [5, 4, 3, 2.5, 2][lod];
+    midiLines.forEach(l => {
+      if (hiddenTracks.has(String(l.trackIdx))) return;
+      if (_midiLayers[l.layerIdx] && !_midiLayers[l.layerIdx].visible) return;
+      const isSel = selectedLine === l;
+      const isVocal = !!l.isVocalCandidate;
+      const dimByVocal = _showVocalFilter && !isVocal && !isSel;
+      const dimBySel   = selectedLine && !isSel && !_showVocalFilter;
+      const isFocused = _focusedTrack !== null && l.trackIdx === _focusedTrack;
+      const layerDim = (_activeLayerIdx !== null && _midiLayers.length > 1 && l.layerIdx !== _activeLayerIdx) ? 0.28 : 1.0;
+      const trackDim = (_focusedTrack !== null && !isFocused) ? 0.28 : 1.0;
+      const baseA = (dimByVocal ? 0.10 : (dimBySel ? 0.12 : 1.0)) * layerDim * trackDim;
+      const drawCol = (_showVocalFilter && isVocal) ? '#ffd700' : l.color;
+      const selBonus = isSel ? 2 : (isFocused ? 1.5 : (_showVocalFilter && isVocal ? 2.5 : 0));
+      const isGlow = isSel || (_showVocalFilter && isVocal);
+      const glow = isFocused ? 10 : 0;
+      if (appMode === 'view') {
+        if (lod <= 1) {
+          drawSmoothCoreline(l.smoothCoreline, drawCol, coreW + selBonus, baseA * (isGlow ? 1.0 : 0.88), isGlow, glow);
+        } else if (lod === 2) {
+          drawFiberGesture(l, baseA * 0.28);
+          drawSmoothCoreline(l.smoothCoreline, drawCol, coreW + selBonus, baseA * 0.92, isGlow, glow);
+        } else if (lod === 3) {
+          drawFiberGesture(l, baseA * 0.50);
+          drawCellDots(l, baseA * 0.45);
+          drawSmoothCoreline(l.smoothCoreline, drawCol, coreW + selBonus, baseA * 0.88, isGlow, glow);
+        } else {
+          drawFiberGesture(l, baseA * 0.80);
+          drawCellDots(l, baseA * 0.65);
+          drawSmoothCoreline(l.smoothCoreline, drawCol, coreW + selBonus, baseA * 0.68, isGlow, glow);
+        }
+      } else if (appMode === 'note') {
+        if (lod >= 2) drawFiberGesture(l, baseA * (lod <= 2 ? 0.4 : 0.60));
+        if (lod >= 3) drawCellDots(l, baseA * 0.55);
+        const coreAlpha = lod >= 3 ? 0.52 : 0.88;
+        drawSmoothCoreline(l.smoothCoreline, drawCol, coreW + selBonus, baseA * coreAlpha, isGlow, glow);
+      } else {
+        drawSmoothCoreline(l.smoothCoreline, drawCol, coreW + selBonus, baseA * 0.50, isGlow, glow);
+      }
+    });
+    const badge = document.getElementById('lod-badge');
+    badge.textContent = LOD_NAMES[lod]; badge.style.display = 'block';
+    refreshLegend();
+  }
+  for (const s of _layer.strokes) { drawBrushStroke(s.pts, false); if (s.blotRadius) drawBlot(s.pts[0], s.blotRadius, 1); }
+  if (_drawing) { drawBrushStroke(_drawing.pts, true); if (_drawing.blot) drawBlot(_drawing.pts[0], _drawing.blot, 0.85); }
+  if (wireLayer) drawWireLayer();
+  if (appMode === 'edit' && drawTool === 'catch' && _catchPoint) {
+    const x = tx(_catchPoint.ms), y = ly(_catchCurCents);
+    const msPx = (VP.t1 - VP.t0) / CW, r = PULL_FALLOFF_MS / msPx;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(200,110,40,0.24)'; ctx.setLineDash([4, 5]); ctx.lineWidth = 1; ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fillStyle = 'rgba(200,110,40,0.20)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(200,110,40,0.88)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.restore();
+  }
+  // 플레이헤드 × 선 교차 글로우
+  if (_playing && _playElapsed >= 0) {
+    const playX = tx(_playElapsed);
+    if (playX >= -10 && playX <= CW + 10) {
+      midiLines.forEach(l => {
+        if (hiddenTracks.has(String(l.trackIdx))) return;
+        if (_midiLayers[l.layerIdx] && !_midiLayers[l.layerIdx].visible) return;
+        const pts = l.smoothCoreline;
+        if (!pts || pts.length < 2) return;
+        if (_playElapsed < pts[0].t || _playElapsed > pts[pts.length - 1].t) return;
+        let lo = 0, hi = pts.length - 1;
+        while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pts[m].t <= _playElapsed) lo = m; else hi = m; }
+        const frac = pts[hi].t > pts[lo].t ? (_playElapsed - pts[lo].t) / (pts[hi].t - pts[lo].t) : 0;
+        const cy = ly(pts[lo].cents + (pts[hi].cents - pts[lo].cents) * frac);
+        ctx.save();
+        const gr = ctx.createRadialGradient(playX, cy, 0, playX, cy, 22);
+        gr.addColorStop(0,    hexToRgba(l.color, 0.95));
+        gr.addColorStop(0.35, hexToRgba(l.color, 0.55));
+        gr.addColorStop(1,    hexToRgba(l.color, 0));
+        ctx.fillStyle = gr; ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.arc(playX, cy, 22, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.95;
+        ctx.beginPath(); ctx.arc(playX, cy, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      });
+    }
+  }
+  // TOP / BASE 엔벨로프 라인
+  if (_showTopLine && _topLine.length > 1) {
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(255,80,80,0.85)'; ctx.lineWidth = 2;
+    ctx.shadowColor = '#ff5050'; ctx.shadowBlur = 6;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    _topLine.forEach((p, i) => {
+      const x = tx(p.t), y = ly(p.cents);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]); ctx.shadowBlur = 0; ctx.restore();
+  }
+  if (_showBaseLine && _baseLine.length > 1) {
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(80,160,255,0.85)'; ctx.lineWidth = 2;
+    ctx.shadowColor = '#50a0ff'; ctx.shadowBlur = 6;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    _baseLine.forEach((p, i) => {
+      const x = tx(p.t), y = ly(p.cents);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]); ctx.shadowBlur = 0; ctx.restore();
+  }
+  if (_highlightedCell) {
+    const hx = tx(_highlightedCell.t), hy = ly(_highlightedCell.cents);
+    if (hx > -20 && hx < CW + 20 && hy > -20 && hy < CH + 20) {
+      ctx.save();
+      ctx.beginPath(); ctx.arc(hx, hy, 12, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,220,80,0.9)'; ctx.lineWidth = 2;
+      ctx.shadowColor = '#ffdc50'; ctx.shadowBlur = 14; ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.beginPath(); ctx.arc(hx, hy, 3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,220,80,0.85)'; ctx.fill();
+      ctx.restore();
+    }
+  }
+  updateMinimap();
+}
+
+/* ════════════════════════════════════════════════════════════
+   미니맵
+════════════════════════════════════════════════════════════ */
+function updateMinimap() {
+  const mw = document.getElementById('minimap-wrap');
+  if (!midiLines.length && !_layer.strokes.length) { mw.style.display = 'none'; return; }
+  mw.style.display = 'block';
+  const mc = document.getElementById('minimap-canvas'), mx = mc.getContext('2d');
+  mx.clearRect(0, 0, MM_W, MM_H);
+  const fT1 = Math.max(_mmTotalMs * 1.06, 10000);
+  let fP0 = -1800, fP1 = 1800;
+  if (midiLines.length) {
+    let lo = Infinity, hi = -Infinity;
+    midiLines.forEach(l => l.notes.forEach(n => { const c = midiToCents(n.midi); if (c < lo) lo = c; if (c > hi) hi = c; }));
+    const pad = (hi - lo) * 0.30; fP0 = lo - pad; fP1 = hi + pad;
+    if (fP1 - fP0 < 300) { const m = (fP0 + fP1) / 2; fP0 = m - 150; fP1 = m + 150; }
+  }
+  const mmX = t => (t / fT1) * MM_W;
+  const mmY = p => MM_H * (1 - (p - fP0) / (fP1 - fP0));
+  midiLines.forEach(l => {
+    const pts = l.smoothCoreline; if (pts.length < 2) return;
+    mx.beginPath(); mx.moveTo(mmX(pts[0].t), mmY(pts[0].cents));
+    for (let i = 1; i < pts.length; i++) mx.lineTo(mmX(pts[i].t), mmY(pts[i].cents));
+    mx.strokeStyle = l.color; mx.lineWidth = 1.8; mx.globalAlpha = 0.85; mx.stroke(); mx.globalAlpha = 1;
+  });
+  _layer.strokes.forEach(s => {
+    if (s.pts.length < 2) return;
+    mx.beginPath(); mx.moveTo(mmX(s.pts[0].time), mmY(s.pts[0].pitch));
+    for (let i = 1; i < s.pts.length; i++) mx.lineTo(mmX(s.pts[i].time), mmY(s.pts[i].pitch));
+    mx.strokeStyle = '#2a2620'; mx.lineWidth = 1; mx.globalAlpha = 0.5; mx.stroke(); mx.globalAlpha = 1;
+  });
+  if (_playing && _playElapsed >= 0) {
+    const phX = mmX(_playElapsed) / MM_W * 140;
+    mx.beginPath(); mx.moveTo(phX, 0); mx.lineTo(phX, MM_H);
+    mx.strokeStyle = 'rgba(220,90,40,0.90)'; mx.lineWidth = 1.5; mx.globalAlpha = 1; mx.stroke();
+  }
+  const vEl = document.getElementById('minimap-vp');
+  const vx = mmX(VP.t0) / MM_W * 140, vy = mmY(VP.p1) / MM_H * 70;
+  const vw = (VP.t1 - VP.t0) / fT1 * 140, vh = (VP.p1 - VP.p0) / (fP1 - fP0) * 70;
+  vEl.style.left = Math.max(0, vx) + 'px'; vEl.style.top = Math.max(0, vy) + 'px';
+  vEl.style.width = Math.min(140, Math.max(3, vw)) + 'px'; vEl.style.height = Math.min(70, Math.max(3, vh)) + 'px';
+}
+</script>
+
+<!-- ════ playback.js ════ -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   AUDIO — Sampler
+════════════════════════════════════════════════════════════ */
+let _audioCtx = null;
+function ensureAudio() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+}
+// Sampler 비활성화 — 오실레이터 전용 모드
+const Sampler = {
+  playGlide() { return null; },
+  ready()     { return false; }
+};
+
+let _liveOsc = null, _liveGain = null;
+function liveStart(cents) {
+  ensureAudio(); liveStop();
+  _liveGain = _audioCtx.createGain(); _liveGain.gain.setValueAtTime(0, _audioCtx.currentTime);
+  _liveGain.gain.setTargetAtTime(0.14, _audioCtx.currentTime, 0.015);
+  _liveOsc = _audioCtx.createOscillator(); _liveOsc.type = 'sine';
+  _liveOsc.frequency.value = 440 * Math.pow(2, cents / 1200);
+  _liveOsc.connect(_liveGain); _liveGain.connect(_audioCtx.destination); _liveOsc.start();
+}
+function liveUpdate(cents) { if (!_liveOsc) return; _liveOsc.frequency.setTargetAtTime(440 * Math.pow(2, cents / 1200), _audioCtx.currentTime, 0.012); }
+function liveStop() {
+  if (!_liveOsc || !_audioCtx) return;
+  const o = _liveOsc, g = _liveGain; _liveOsc = null; _liveGain = null;
+  const now = _audioCtx.currentTime;
+  g.gain.cancelScheduledValues(now); g.gain.setTargetAtTime(0, now, 0.05);
+  setTimeout(() => { try { o.stop(); } catch (e) { } }, 220);
+}
+
+// Sampler 미로드 시 오실레이터 fallback
+function _playOscNote(pts, t0) {
+  if (!pts.length) return;
+  const tOff = pts[0].time / 1000;
+  const dur = (pts[pts.length - 1].time - pts[0].time) / 1000;
+  if (dur < 0.02) return;
+  const t0n = t0 + tOff;
+  const o = _audioCtx.createOscillator();
+  const g = _audioCtx.createGain();
+  o.type = 'triangle';
+  const step = Math.max(1, Math.floor(pts.length / 60));
+  o.frequency.setValueAtTime(440 * Math.pow(2, pts[0].pitch / 1200), Math.max(0, t0n - 0.001));
+  for (let i = 0; i < pts.length; i += step) {
+    const tAbs = t0 + pts[i].time / 1000; // pts[i].time은 절대 ms
+    o.frequency.linearRampToValueAtTime(440 * Math.pow(2, pts[i].pitch / 1200), Math.max(t0n, tAbs));
+  }
+  const att = 0.015, rel = 0.08;
+  const tSus = t0n + Math.max(att + 0.005, dur - rel), tEnd = t0n + dur + rel;
+  g.gain.setValueAtTime(0, t0n); g.gain.linearRampToValueAtTime(0.12, t0n + att);
+  g.gain.setValueAtTime(0.12, tSus); g.gain.exponentialRampToValueAtTime(0.0001, tEnd);
+  o.connect(g); g.connect(_audioCtx.destination);
+  o.start(t0n); o.stop(tEnd + 0.05);
+  _activeSrcs.push(o);
+}
+
+function playDot(cents) {
+  ensureAudio(); const now = _audioCtx.currentTime;
+  const o = _audioCtx.createOscillator(), g = _audioCtx.createGain();
+  o.type = 'sine'; o.frequency.value = 440 * Math.pow(2, cents / 1200);
+  g.gain.setValueAtTime(0.18, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+  o.connect(g); g.connect(_audioCtx.destination); o.start(now); o.stop(now + 0.45);
+}
+
+/* ════════════════════════════════════════════════════════════
+   재생
+════════════════════════════════════════════════════════════ */
+function togglePlay() { _playing ? stopPlay() : startPlay(); }
+function startPlay() {
+  ensureAudio(); stopPlay();
+  if (!_layer.strokes.length && !midiLines.length) { flashHint('재생할 데이터가 없어요'); return; }
+  const t0 = _audioCtx.currentTime + 0.08;
+  const AUDIO_DELAY_MS = 80; // t0 딜레이(0.08초)와 커서 시작점을 맞춤
+  let maxMs = 0;
+  for (const s of _layer.strokes) {
+    if (!s.pts || s.pts.length < 2) continue;
+    maxMs = Math.max(maxMs, s.pts[s.pts.length - 1].time);
+    _playOscNote(s.pts, t0);
+  }
+  if (midiLines.length) {
+    midiLines.forEach(line => {
+      if (hiddenTracks.has(String(line.trackIdx))) return; // 숨긴 트랙 스킵
+      if (_midiLayers[line.layerIdx] && !_midiLayers[line.layerIdx].visible) return;
+      line.fibers.forEach(fiber => {
+        // 시작/끝은 항상 fiber의 실제 startMs/endMs 사용
+        const midPts = fiber.points && fiber.points.length
+          ? fiber.points.map(p => ({time: p.t, pitch: p.cents}))
+          : [{time: (fiber.startMs + fiber.endMs) / 2, pitch: midiToCents(fiber.note.midi)}];
+        const pts = [
+          {time: fiber.startMs, pitch: midPts[0].pitch},
+          ...midPts,
+          {time: fiber.endMs,   pitch: midPts[midPts.length - 1].pitch}
+        ];
+        _playOscNote(pts, t0);
+      });
+      maxMs = Math.max(maxMs, line.endMs);
+    });
+  }
+  if (!maxMs) { flashHint('재생할 데이터가 없어요'); return; }
+  _playing = true;
+  document.getElementById('btn-play').innerHTML = '■<span class="lbl">Stop</span>';
+  document.getElementById('pcursor').style.display = 'block';
+  const _td = document.getElementById('playhead-time');
+  if (_td) { _td.style.display = 'block'; _td.textContent = '00:00.0 / ' + fmtMs(maxMs); }
+  const start = performance.now() - AUDIO_DELAY_MS; // [FIX] 오디오 딜레이 보정
+  function step(now) {
+    if (!_playing) return;
+    const el = now - start; _playElapsed = el;
+    document.getElementById('pcursor').style.left = tx(el) + 'px';
+    if (_td) _td.textContent = fmtMs(Math.max(0, el)) + ' / ' + fmtMs(maxMs);
+    if (_autoFollow && el >= 0) {
+      const headX = tx(el);
+      if (headX > CW * 0.80 || headX < 0) {
+        const span = VP.t1 - VP.t0; VP.t0 = el - span * 0.15; VP.t1 = VP.t0 + span;
+      }
+    }
+    if (_pitchFollow && _focusedTrack !== null && el >= 0) {
+      const pitch = getFocusedPitchAt(el);
+      if (pitch !== null) {
+        const span = VP.p1 - VP.p0;
+        const cur = (VP.p0 + VP.p1) / 2;
+        const next = cur + (pitch - cur) * 0.035;
+        VP.p0 = next - span / 2; VP.p1 = next + span / 2;
+      }
+    }
+    render();
+    if (el > maxMs + 400) { stopPlay(); return; }
+    _playRAF = requestAnimationFrame(step);
+  }
+  _playRAF = requestAnimationFrame(step);
+}
+function stopPlay() {
+  _activeSrcs.forEach(s => { try { s.stop(0); } catch (e) { } });
+  _activeSrcs = []; _playing = false; cancelAnimationFrame(_playRAF); _playElapsed = -9999;
+  document.getElementById('pcursor').style.display = 'none';
+  const _tdStop = document.getElementById('playhead-time');
+  if (_tdStop) _tdStop.style.display = 'none';
+  document.getElementById('btn-play').innerHTML = '▶<span class="lbl">Play</span>';
+  render();
+}
+</script>
+
+<!-- ════ wire.js ════ -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   전선 (Wire Layer) — 3가지 적용 방식
+════════════════════════════════════════════════════════════ */
+
+function setWireMode(m) {
+  wireMode = m;
+  document.querySelectorAll('.wmbtn').forEach(b => b.classList.toggle('act', b.dataset.wm === m));
+  document.getElementById('wire-opt-full').style.display  = m === 'full'  ? '' : 'none';
+  document.getElementById('wire-opt-pitch').style.display = m === 'pitch' ? '' : 'none';
+  document.getElementById('wire-opt-time').style.display  = m === 'time'  ? '' : 'none';
+  if (m === 'time') buildSegSliders();
+  render();
+}
+function buildSegSliders() {
+  const n = parseInt(document.getElementById('wireSegCount')?.value ?? 4);
+  const container = document.getElementById('wire-seg-sliders'); if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const val = (0.92 - i * (0.92 / (n - 1 || 1))).toFixed(2);
+    const row = document.createElement('div');
+    row.innerHTML = `<div class="mp-label" style="font-size:.6rem;">구간 ${i + 1} <span class="vv" id="v_wseg${i}">${val}</span></div>
+    <input type="range" class="msl" id="wireSeg${i}" min="0" max="1" step="0.01" value="${val}"
+      oninput="document.getElementById('v_wseg${i}').textContent=(+this.value).toFixed(2);render()">`;
+    container.appendChild(row);
+  }
+}
+function getWireAlphaForPt(pt, lineId) {
+  if (wireMode === 'full') return parseFloat(document.getElementById('wireAlpha')?.value ?? 0.92);
+  if (wireMode === 'pitch') {
+    const hiA = parseFloat(document.getElementById('wireHiAlpha')?.value ?? 0.30);
+    const loA = parseFloat(document.getElementById('wireLoAlpha')?.value ?? 0.95);
+    const split = parseInt(document.getElementById('wirePitchSplit')?.value ?? 60);
+    const midi = Math.round(69 + pt.cents / 100);
+    const span = 12;
+    const t = clamp((midi - split + span / 2) / span, 0, 1);
+    return loA + (hiA - loA) * t;
+  }
+  if (wireMode === 'time') {
+    const n = parseInt(document.getElementById('wireSegCount')?.value ?? 4);
+    const totalMs = _mmTotalMs || 10000;
+    const segIdx = clamp(Math.floor(pt.t / totalMs * n), 0, n - 1);
+    const el = document.getElementById(`wireSeg${segIdx}`);
+    return el ? parseFloat(el.value) : 0.92;
+  }
+  return 0.92;
+}
+function getWireAlpha() { return parseFloat(document.getElementById('wireAlpha')?.value ?? 0.92); }
+function getWireWidth() { return parseInt(document.getElementById('wireWidth')?.value ?? 0); }
+function calcWireWidth(line) {
+  const manual = getWireWidth(); if (manual > 0) return manual;
+  let minC = Infinity, maxC = -Infinity;
+  line.fibers.forEach(f => f.cells.forEach(c => { const cents = midiToCents(c.pitch); if (cents < minC) minC = cents; if (cents > maxC) maxC = cents; }));
+  const rangePx = Math.abs(ly(minC) - ly(maxC));
+  return Math.max(16, rangePx * 1.2 + 8);
+}
+function calcWireWidthFromPts(wl) { const line = midiLines.find(l => l.id === wl.lineId); return line ? calcWireWidth(line) : 16; }
+function applyWireLayer() {
+  if (!midiLines.length) { wireStatus('MIDI 분석 데이터가 없습니다'); return; }
+  if (wireMode === 'time') buildSegSliders();
+  wireLayer = {mode: wireMode, lines: midiLines.map(l => ({lineId: l.id, pts: l.smoothCoreline.map(p => ({...p})), color: l.color, merged: false}))};
+  wireMerged = false;
+  document.getElementById('btn-merge-wire').disabled = false;
+  document.getElementById('btn-remove-wire').disabled = false;
+  wireStatus(`전선 생성 (${wireMode === 'full' ? '전체' : wireMode === 'pitch' ? '피치별' : '타임라인별'}) — 피복 투명도로 내부 확인 가능`);
+  setAppMode('wire'); render();
+}
+function mergeWireLayer() {
+  if (!wireLayer) { wireStatus('전선 레이어가 없습니다'); return; }
+  wireMerged = true; wireLayer.lines.forEach(wl => { wl.merged = true; });
+  wireStatus('병합 완료 — 전선 드래그 시 오디오 실시간 반영'); render();
+}
+function removeWireLayer() {
+  wireLayer = null; wireMerged = false;
+  document.getElementById('btn-merge-wire').disabled = true;
+  document.getElementById('btn-remove-wire').disabled = true;
+  wireStatus(''); setAppMode('view'); render();
+}
+function wireStatus(msg) { const el = document.getElementById('wire-status'); if (el) el.textContent = msg; }
+function wireHitTest(x, y) {
+  if (!wireLayer || !wireMerged) return null;
+  for (const wl of wireLayer.lines) {
+    for (const pt of wl.pts) {
+      const px = tx(pt.t), py = ly(pt.cents);
+      if (Math.hypot(px - x, py - y) < calcWireWidthFromPts(wl) / 2 + 10) return {wl, pt};
+    }
+  }
+  return null;
+}
+function applyWireDrag(wl, pt, newCents) {
+  const delta = newCents - pt.cents; pt.cents = newCents;
+  const line = midiLines.find(l => l.id === wl.lineId); if (!line) return;
+  let closest = null, minD = Infinity;
+  line.smoothCoreline.forEach(sp => { const d = Math.abs(sp.t - pt.t); if (d < minD) { minD = d; closest = sp; } });
+  if (closest) closest.cents += delta;
+  line.fibers.forEach(fiber => {
+    const dt = Math.abs((fiber.startMs + fiber.endMs) / 2 - pt.t);
+    const falloff = Math.max(0, 1 - dt / 2000); if (falloff < 0.01) return;
+    fiber.points.forEach(p => { p.cents += delta * falloff; });
+    fiber.cells.forEach(c => { c.pitch += delta / 100 * falloff; });
+  });
+}
+function enableWireBtn() { const el = document.getElementById('btn-apply-wire'); if (el) el.disabled = false; }
+
+/* Wire 색상 스와치 */
+document.querySelectorAll('.wcs').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.wcs').forEach(e => e.classList.remove('act'));
+    el.classList.add('act'); wireColor = el.dataset.col; render();
+  });
+});
+
+/* Wire 슬라이더 바인딩 */
+['wireAlpha', 'wireWidth', 'wireHiAlpha', 'wireLoAlpha'].forEach(id => {
+  const el = document.getElementById(id); if (!el) return;
+  el.addEventListener('input', () => {
+    const vmap = {'wireAlpha': 'v_wire_alpha', 'wireWidth': 'v_wire_w', 'wireHiAlpha': 'v_wire_hi_a', 'wireLoAlpha': 'v_wire_lo_a'};
+    const vEl = document.getElementById(vmap[id]);
+    if (vEl) vEl.textContent = id === 'wireWidth' ? (el.value === '0' ? '자동' : el.value + 'px') : (+el.value).toFixed(2);
+    render();
+  });
+});
+const psEl = document.getElementById('wirePitchSplit');
+if (psEl) psEl.addEventListener('input', () => { const vEl = document.getElementById('v_wire_psplit'); if (vEl) vEl.textContent = midiToName(+psEl.value); render(); });
+const scEl = document.getElementById('wireSegCount');
+if (scEl) scEl.addEventListener('input', () => { const vEl = document.getElementById('v_wire_segs'); if (vEl) vEl.textContent = scEl.value; buildSegSliders(); render(); });
+</script>
+
+<!-- ════ ui.js ════ -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   힌트
+════════════════════════════════════════════════════════════ */
+function flashHint(msg) {
+  const h = document.getElementById('hint');
+  h.textContent = msg; h.style.opacity = '0.85';
+  clearTimeout(flashHint._t);
+  flashHint._t = setTimeout(() => { h.style.opacity = '0'; }, 2200);
+}
+
+/* ════════════════════════════════════════════════════════════
+   로그
+════════════════════════════════════════════════════════════ */
+function log(msg) {
+  const d = document.createElement('div');
+  d.textContent = `[${new Date().toLocaleTimeString('ko', {hour12: false})}] ${msg}`;
+  const lb = document.getElementById('logBox'); lb.appendChild(d); lb.scrollTop = lb.scrollHeight;
+}
+
+/* ════════════════════════════════════════════════════════════
+   앱 모드 / 툴
+════════════════════════════════════════════════════════════ */
+function setAppMode(m) {
+  appMode = m;
+  ['view', 'note', 'edit', 'wire'].forEach(k => { const el = document.getElementById('mbtn-' + k); if (el) el.classList.toggle('act', k === m); });
+  document.getElementById('edit-tools').classList.toggle('show', m === 'edit');
+  document.getElementById('paper-wrap').classList.toggle('editing', m === 'edit' || m === 'wire');
+  refreshLegend();
+  flashHint(m === 'view' ? (midiLines.length ? '드래그로 이동 · 휠로 줌' : '선을 그어보세요') : m === 'note' ? '확대하면 Gesture 세부 정보' : m === 'wire' ? (wireLayer ? '피복 투명도로 내부 확인' : '선 입히기로 전선 생성') : '선을 그어 멜로디 추가');
+  render();
+}
+function refreshLegend() {
+  const lod = getLOD();
+  // Show gesture legend at LOD 3+ (Cell/Gesture level)
+  const show = appMode === 'note' && lod >= 3 && midiLines.length > 0;
+  document.getElementById('gest-legend').classList.toggle('show', show);
+}
+function setTool(t) {
+  drawTool = t;
+  document.getElementById('btn-draw').classList.toggle('act', t === 'draw');
+  document.getElementById('btn-catch').classList.toggle('act', t === 'catch');
+}
+function setInstrument(ins) {
+  _layer.instrument = ins;
+  document.getElementById('ibtn-piano').classList.toggle('act', ins === 'piano');
+  document.getElementById('ibtn-violin').classList.toggle('act', ins === 'violin');
+}
+
+/* ════════════════════════════════════════════════════════════
+   패널 탭
+════════════════════════════════════════════════════════════ */
+function switchPanelTab(btn) {
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('on'));
+  btn.classList.add('on'); document.getElementById(btn.dataset.tab).classList.add('on');
+}
+
+/* ════════════════════════════════════════════════════════════
+   진행바
+════════════════════════════════════════════════════════════ */
+const yieldUI = () => new Promise(r => setTimeout(r, 0));
+function setProgress(pct, label) { document.getElementById('prog-wrap').style.display = 'block'; document.getElementById('prog-bar').style.width = pct + '%'; document.getElementById('prog-label').textContent = label; }
+function hideProgress() { document.getElementById('prog-wrap').style.display = 'none'; document.getElementById('prog-bar').style.width = '0%'; }
+
+/* ════════════════════════════════════════════════════════════
+   슬라이더 바인딩
+════════════════════════════════════════════════════════════ */
+[
+  ['cellMs', 'v_cell', v => v + 'ms'], ['atkThr', 'v_atk', v => (+v).toFixed(2)],
+  ['vibCent', 'v_vib', v => v + 'cent'], ['decThr', 'v_dec', v => (+v).toFixed(2)],
+  ['hfStrength', 'v_hfstr', v => (+v).toFixed(1)], ['vibDur', 'v_vdur', v => v + 'ms'],
+  ['glideMin', 'v_gmin', v => v + 'cent'], ['trueThr', 'v_tch', v => v + 'cent'],
+  ['minNotes', 'v_minn', v => v], ['pbRange', 'v_pbr', v => v + ' semi'],
+  ['vibPbDepth', 'v_vbpb', v => (+v).toFixed(1)], ['glidePb', 'v_glpb', v => (+v).toFixed(1)],
+  ['decCurve', 'v_deccv', v => (+v).toFixed(1)], ['velScale', 'v_vs', v => (+v).toFixed(1)],
+].forEach(([id, vid, fmt]) => {
+  const el = document.getElementById(id); if (!el) return;
+  el.addEventListener('input', () => { const v = document.getElementById(vid); if (v) v.textContent = fmt(el.value); });
+});
+
+/* ════════════════════════════════════════════════════════════
+   유틸리티 함수
+════════════════════════════════════════════════════════════ */
+function fmtMs(ms) {
+  if (ms < 0) ms = 0;
+  const s = ms / 1000, m = Math.floor(s / 60);
+  return String(m).padStart(2, '0') + ':' + (s % 60).toFixed(1).padStart(4, '0');
+}
+function toggleDarkMode() {
+  _darkMode = !_darkMode;
+  document.body.classList.toggle('dm', _darkMode);
+  document.getElementById('btn-darkmode').textContent = _darkMode ? '🌙' : '☀';
+  TRACK_COLS = _darkMode ? TRACK_COLS_DARK : TRACK_COLS_LIGHT;
+  midiLines.forEach(l => { l.color = trackLineColor(l.trackIdx, l._trackLineIdx || 0); });
+  buildTexture(); render();
+}
+function toggleAdv() {
+  const s = document.getElementById('adv-section');
+  const b = document.getElementById('btn-adv');
+  const open = s.style.display !== 'none';
+  s.style.display = open ? 'none' : 'flex';
+  b.textContent = open ? '고급 설정 ▾' : '고급 설정 ▴';
+}
+function toggleAutoFollow() {
+  _autoFollow = !_autoFollow;
+  const b = document.getElementById('btn-autofollow');
+  if (b) b.classList.toggle('act', _autoFollow);
+}
+function togglePitchFollow() {
+  _pitchFollow = !_pitchFollow;
+  const b = document.getElementById('btn-pitchfollow');
+  if (b) b.classList.toggle('act', _pitchFollow);
+}
+function getFocusedPitchAt(ms) {
+  const lines = midiLines.filter(l =>
+    l.trackIdx === _focusedTrack &&
+    !hiddenTracks.has(String(l.trackIdx)) &&
+    l.smoothCoreline && l.smoothCoreline.length >= 2
+  );
+  let best = null, bestDist = Infinity;
+  lines.forEach(l => {
+    const pts = l.smoothCoreline;
+    if (ms < pts[0].t - 800 || ms > pts[pts.length - 1].t + 800) return;
+    let lo = 0, hi = pts.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pts[m].t <= ms) lo = m; else hi = m; }
+    const frac = pts[hi].t > pts[lo].t ? (ms - pts[lo].t) / (pts[hi].t - pts[lo].t) : 0;
+    const pitch = pts[lo].cents + (pts[hi].cents - pts[lo].cents) * frac;
+    const dist = Math.abs(pts[lo].t - ms);
+    if (dist < bestDist) { bestDist = dist; best = pitch; }
+  });
+  return best;
+}
+function setGapPreset(btn) {
+  document.querySelectorAll('#gap-presets .pbtn').forEach(b => b.classList.remove('act'));
+  btn.classList.add('act');
+  document.getElementById('gapThr').value = btn.dataset.val;
+}
+function setPitchPreset(btn) {
+  document.querySelectorAll('#pjump-presets .pbtn').forEach(b => b.classList.remove('act'));
+  btn.classList.add('act');
+  document.getElementById('pitchJump').value = btn.dataset.val;
+}
+function toggleSameTrackPriority() {
+  _sameTrackPriority = !_sameTrackPriority;
+  const b = document.getElementById('btn-stp');
+  if (b) b.classList.toggle('act', _sameTrackPriority);
+}
+function toggleWeakConn() {
+  _showWeakConn = !_showWeakConn;
+  const b = document.getElementById('btn-swc');
+  if (b) b.classList.toggle('act', _showWeakConn);
+}
+
+/* ════════════════════════════════════════════════════════════
+   MIDI 파일 즉시 로드 (파일 선택 → parseMidi → buildLines → render)
+════════════════════════════════════════════════════════════ */
+document.getElementById('midiFile').addEventListener('change', async () => {
+  const f = document.getElementById('midiFile').files[0]; if (!f) return;
+  const status = document.getElementById('midiStatus');
+  status.style.color = '#9a9490';
+  status.textContent = '읽는 중…';
+  try {
+    const buf = await f.arrayBuffer();
+    const raw = parseMidi(buf);
+    const totalNotes = raw.reduce((s, tr) => s + tr.notes.length, 0);
+    midiTracks = raw; rawMidiTracks = raw; allCells = []; hfResult = []; exprEvents = [];
+    _midiLayers = [{name: f.name, visible: true}]; _globalLineIdOff = 0; _activeLayerIdx = null; _focusedTrack = null;
+    // Cell 없이 바로 buildLines (cell 없어도 fiber는 빈 채로 Line은 만들어짐)
+    midiLines = buildLines(midiTracks, 0, 0);
+    _globalLineIdOff = midiLines.length;
+    const totalDur = midiTracks.flatMap(tr => tr.notes.map(n => n.endMs)).reduce((a, b) => a > b ? a : b, 0);
+    fitView();
+    _mmTotalMs = totalDur;
+    renderLineList();
+    renderLayerPanel();
+    renderMidiLayerPanel();
+    document.getElementById('tab-input-lines').style.display = 'block';
+    document.getElementById('drop-hint').classList.add('hidden');
+    document.getElementById('shortcuts').classList.add('show');
+    status.style.color = '#3d8f6a';
+    status.textContent = `✓ ${f.name} — ${totalNotes}음 / ${midiLines.length}선 / BPM ${detectedBpm}`;
+    log(`MIDI 로드: ${f.name} — ${totalNotes}음, ${midiLines.length}선`);
+    setAppMode('view');
+  } catch (err) {
+    console.error(err);
+    status.style.color = '#c0392b';
+    status.textContent = '오류: ' + err.message;
+    log('오류: ' + err.message);
+  }
+});
+
+/* ════════════════════════════════════════════════════════════
+   분석 / 데모 / 저장
+════════════════════════════════════════════════════════════ */
+async function runPipeline(rawTracks) {
+  const cellMs = +document.getElementById('cellMs').value;
+  const atkThr = +document.getElementById('atkThr').value;
+  const vibCent = +document.getElementById('vibCent').value;
+  const decThr = +document.getElementById('decThr').value;
+  const vibDur = +document.getElementById('vibDur').value;
+  const glideMin = +document.getElementById('glideMin').value;
+  const trueThr = +document.getElementById('trueThr').value;
+  const hfStr = +document.getElementById('hfStrength').value;
+  midiTracks = rawTracks; allCells = []; hfResult = [];
+  const totalNotes = rawTracks.reduce((s, tr) => s + tr.notes.length, 0);
+  let done = 0;
+  setProgress(0, `Cell 분해… 0/${totalNotes}`); await yieldUI();
+  for (const tr of midiTracks) {
+    const chunks = [];
+    for (let i = 0; i < tr.notes.length; i += 20) chunks.push(tr.notes.slice(i, i + 20));
+    for (const chunk of chunks) {
+      chunk.forEach(n => { n.cells = decomposNote(n, cellMs, atkThr, vibCent, decThr, audioBuf); allCells.push(...n.cells); done++; });
+      setProgress(Math.round(done / totalNotes * 60), `Cell 분해… ${done}/${totalNotes}`); await yieldUI();
+    }
+    setProgress(65, 'Human Filter…'); await yieldUI();
+    tr.hf = runHumanFilter(tr.notes, vibDur, glideMin, trueThr, hfStr);
+    hfResult.push(...tr.hf);
+  }
+  setProgress(72, 'Line / Fiber…'); await yieldUI();
+  _midiLayers = [{name: _currentMidiName || 'MIDI', visible: true}]; _globalLineIdOff = 0; _activeLayerIdx = null; _focusedTrack = null;
+  midiLines = buildLines(midiTracks, 0, 0);
+  _globalLineIdOff = midiLines.length;
+  log(`Lines 생성: ${midiLines.length}개 / smoothCoreline 크기: ${midiLines.map(l => l.smoothCoreline.length).join(', ')}`);
+  setProgress(82, 'Expression Engine…'); await yieldUI();
+  exprEvents = runExpressionEngine();
+  const totalDur = midiTracks.flatMap(tr => tr.notes.map(n => n.endMs)).reduce((a, b) => a > b ? a : b, 0);
+  document.getElementById('s_notes').textContent = totalNotes;
+  document.getElementById('s_cells').textContent = allCells.length;
+  document.getElementById('s_lines').textContent = midiLines.length;
+  document.getElementById('s_dur').textContent = (totalDur / 1000).toFixed(1) + 's';
+  document.getElementById('s_bpm').textContent = detectedBpm + ' BPM';
+  log(`분해: ${totalNotes}개 Note → ${allCells.length}개 Cell`);
+  log(`Lines: ${midiLines.length}개`);
+  fitView();
+  _mmTotalMs = totalDur;
+  renderLineList();
+  renderMidiLayerPanel();
+  ['btnExportMidi', 'btnExportJson', 'btn-export'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
+  enableWireBtn();
+  scoreAllVocalLines();
+  setProgress(100, '완료!'); await yieldUI();
+  hideProgress();
+  document.getElementById('drop-hint').classList.add('hidden');
+  document.getElementById('shortcuts').classList.add('show');
+  console.log('[MB] pipeline 완료 — midiLines:', midiLines.length, '/ CW:', CW, '/ CH:', CH, '/ ctx:', !!ctx);
+  setAppMode('view'); // 내부에서 render() 호출됨
+}
+
+async function runAnalysis() {
+  const f = document.getElementById('midiFile').files[0];
+  if (!f) { alert('MIDI 파일을 선택해주세요.'); return; }
+  try { log(`MIDI: ${f.name}`); _currentMidiName = f.name; const buf = await f.arrayBuffer(); const raw = parseMidi(buf); log(`파싱: ${raw.length}개 Track/Ch, BPM=${detectedBpm}`); await runPipeline(raw); }
+  catch (err) { console.error(err); log('오류: ' + err.message); hideProgress(); }
+}
+function addMidiLayer() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.mid,.midi';
+  input.onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const buf = await f.arrayBuffer();
+      const raw = parseMidi(buf);
+      const layerIdx = _midiLayers.length;
+      const newLines = buildLines(raw, _globalLineIdOff, layerIdx);
+      _midiLayers.push({name: f.name, visible: true});
+      midiLines = [...midiLines, ...newLines];
+      _globalLineIdOff += newLines.length;
+      renderLineList(); renderMidiLayerPanel(); fitView(); render();
+      log(`레이어 ${layerIdx + 1} 추가: ${f.name} — ${newLines.length}선`);
+    } catch(err) { log('오류: ' + err.message); }
+  };
+  input.click();
+}
+function renderMidiLayerPanel() {
+  const wrap = document.getElementById('midi-layer-list');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  if (_midiLayers.length <= 1) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+  _midiLayers.forEach((layer, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:3px;align-items:center;';
+    const focused = _activeLayerIdx === i;
+    const btn = document.createElement('button');
+    btn.className = 'pbtn' + (focused ? ' act' : '');
+    btn.style.cssText = `flex:1;padding:4px 8px;font-size:.66rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;${!layer.visible ? 'opacity:.4;' : ''}`;
+    btn.title = layer.name + ' (클릭: 포커스)';
+    btn.textContent = `L${i+1} ${layer.name.replace(/\.midi?$/i,'').slice(0,14)}`;
+    btn.onclick = () => { _activeLayerIdx = (_activeLayerIdx === i) ? null : i; renderMidiLayerPanel(); render(); };
+    const eye = document.createElement('button');
+    eye.className = 'pbtn' + (layer.visible ? ' act' : '');
+    eye.style.cssText = 'flex:none;padding:4px 6px;font-size:.74rem;';
+    eye.title = layer.visible ? '숨기기' : '표시';
+    eye.textContent = layer.visible ? '👁' : '🚫';
+    eye.onclick = () => { layer.visible = !layer.visible; renderMidiLayerPanel(); render(); };
+    row.appendChild(btn); row.appendChild(eye);
+    wrap.appendChild(row);
+  });
+}
+async function runDemo() {
+  const melody = [
+    {midi: 64, startMs: 0, durMs: 800, velocity: 85, trackIdx: 0, ch: 0}, {midi: 64, startMs: 820, durMs: 400, velocity: 75, trackIdx: 0, ch: 0},
+    {midi: 67, startMs: 1240, durMs: 1200, velocity: 90, trackIdx: 0, ch: 0}, {midi: 65, startMs: 2460, durMs: 600, velocity: 80, trackIdx: 0, ch: 0},
+    {midi: 64, startMs: 3080, durMs: 1400, velocity: 88, trackIdx: 0, ch: 0}, {midi: 62, startMs: 4500, durMs: 800, velocity: 72, trackIdx: 0, ch: 0},
+    {midi: 60, startMs: 5320, durMs: 1800, velocity: 95, trackIdx: 0, ch: 0},
+  ];
+  const bass = [
+    {midi: 48, startMs: 0, durMs: 2400, velocity: 70, trackIdx: 1, ch: 1}, {midi: 43, startMs: 2460, durMs: 2600, velocity: 68, trackIdx: 1, ch: 1},
+    {midi: 48, startMs: 5320, durMs: 1800, velocity: 72, trackIdx: 1, ch: 1},
+  ];
+  melody.forEach(n => { n.endMs = n.startMs + n.durMs; }); bass.forEach(n => { n.endMs = n.startMs + n.durMs; });
+  detectedBpm = 120; log('데모 데이터');
+  await runPipeline([{trackIdx: 0, ch: 0, notes: melody}, {trackIdx: 1, ch: 1, notes: bass}]);
+}
+
+function renderLineList() {
+  const list = document.getElementById('lineList'); list.innerHTML = '';
+  midiLines.forEach(l => {
+    const item = document.createElement('div');
+    item.className = 'line-item' + (l === selectedLine ? ' sel' : '');
+    item.innerHTML = `<div class="li-dot" style="background:${l.color}"></div><span class="li-name">${l.label}</span><span class="li-meta">${l.notes.length}n · ${((l.endMs - l.startMs) / 1000).toFixed(1)}s</span>`;
+    item.addEventListener('click', () => { selectedLine = l === selectedLine ? null : l; renderLineList(); render(); });
+    list.appendChild(item);
+  });
+}
+
+function renderLayerPanel() {
+  const panel = document.getElementById('layer-panel');
+  const list  = document.getElementById('layer-list');
+  const count = document.getElementById('layer-count');
+  if (!rawMidiTracks.length) { panel.style.display = 'none'; return; }
+
+  panel.style.display = 'block';
+  list.innerHTML = '';
+  count.textContent = rawMidiTracks.length + '개';
+
+  rawMidiTracks.forEach((tr) => {
+    const key = String(tr.trackIdx);
+    const color = trackLineColor(tr.trackIdx, 2);
+    const isHidden = hiddenTracks.has(key);
+    const isFocused = _focusedTrack === tr.trackIdx;
+
+    const item = document.createElement('div');
+    item.className = 'layer-item' + (isHidden ? ' hidden-layer' : '') + (isFocused ? ' focused' : '');
+    if (isFocused) item.style.borderLeftColor = color;
+    item.title = '클릭: Focus 토글';
+    item.innerHTML =
+      `<span class="layer-eye" title="표시/숨김">${isHidden ? '🚫' : '👁'}</span>` +
+      `<div class="layer-dot" style="background:${color};box-shadow:0 0 5px ${color}88;"></div>` +
+      `<span class="layer-name">Track ${tr.trackIdx + 1}</span>` +
+      `<span class="layer-meta">${tr.notes.length}음</span>`;
+
+    item.addEventListener('click', e => {
+      if (e.target.classList.contains('layer-eye')) return;
+      _focusedTrack = (isFocused) ? null : tr.trackIdx;
+      renderLayerPanel(); render();
+    });
+
+    item.querySelector('.layer-eye').addEventListener('click', e => {
+      e.stopPropagation();
+      const wasPlaying = _playing;
+      if (wasPlaying) stopPlay();
+      if (hiddenTracks.has(key)) hiddenTracks.delete(key);
+      else hiddenTracks.add(key);
+      renderLayerPanel(); render();
+      if (wasPlaying) startPlay();
+    });
+
+    list.appendChild(item);
+  });
+}
+
+function doMidiSave() {
+  if (!exprEvents.length) { alert('먼저 분석을 실행해주세요.'); return; }
+  const bytes = buildFinalMidi(exprEvents, detectedBpm);
+  const blob = new Blob([bytes], {type: 'audio/midi'});
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), {href: url, download: 'melodybrush_expression.mid'});
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  log(`Final MIDI 저장: ${bytes.length}bytes`);
+}
+function doJsonSave() {
+  const out = {
+    version: 'melodybrush-pc', createdAt: new Date().toISOString(), bpm: detectedBpm,
+    tracks: midiTracks.map(tr => ({trackIdx: tr.trackIdx, ch: tr.ch, notes: tr.notes.map(n => ({midi: n.midi, startMs: n.startMs, durMs: n.durMs, velocity: n.velocity}))})),
+    lines: midiLines.map(l => ({id: l.id, label: l.label, startMs: l.startMs, endMs: l.endMs, notes: l.notes.length})),
+    events: exprEvents.map(e => ({tMs: e.tMs, type: e.type, ch: e.ch, val1: e.val1, val2: e.val2}))
+  };
+  const blob = new Blob([JSON.stringify(out, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), {href: url, download: 'melodybrush_pc.json'});
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+</script>
+
+<!-- ════ cell-inspector.js ════ -->
+<script>
+const _GCOL = {ATTACK:'#facc15',HOLD:'#4ade80',VIBRATO:'#c084fc',GLIDE:'#f97316',DECAY:'#60a5fa',TAIL:'#94a3b8',NOISE:'#f87171'};
+
+function toggleCellPanel() {
+  _cellInspectorOpen = !_cellInspectorOpen;
+  const p = document.getElementById('cell-panel');
+  if (p) p.style.display = _cellInspectorOpen ? 'flex' : 'none';
+  const b = document.getElementById('btn-cellinspector');
+  if (b) b.classList.toggle('act', _cellInspectorOpen);
+  if (_cellInspectorOpen) renderCellTable();
+}
+
+function renderCellTable() {
+  const tbody = document.getElementById('cell-tbody');
+  const countEl = document.getElementById('ci-count');
+  if (!tbody) return;
+  const gestureFilter = document.getElementById('ci-gesture')?.value || '';
+  const trackOnly = document.getElementById('ci-track-only')?.checked;
+  const lineOnly = document.getElementById('ci-line-only')?.checked;
+
+  const rows = [];
+  midiLines.forEach(line => {
+    if (trackOnly && _focusedTrack !== null && line.trackIdx !== _focusedTrack) return;
+    if (lineOnly && selectedLine && line !== selectedLine) return;
+    if (!line.fibers?.length) return;
+    line.fibers.forEach(fiber => {
+      if (fiber.points?.length) {
+        fiber.points.forEach(pt => {
+          if (gestureFilter && pt.gesture !== gestureFilter) return;
+          rows.push({t: pt.t, cents: pt.cents, energy: pt.energy||0,
+            gesture: pt.gesture||'?', confidence: pt.confidence||0,
+            trackIdx: line.trackIdx, lineId: line.id, color: line.color});
+        });
+      } else {
+        if (gestureFilter && fiber.dominantGesture !== gestureFilter) return;
+        rows.push({t: (fiber.startMs+fiber.endMs)/2, cents: midiToCents(fiber.avgPitch||fiber.note?.midi||60),
+          energy: fiber.energy||0, gesture: fiber.dominantGesture||'HOLD', confidence: 0,
+          trackIdx: line.trackIdx, lineId: line.id, color: line.color});
+      }
+    });
+  });
+  rows.sort((a, b) => a.t - b.t);
+
+  const MAX = 3000;
+  const shown = rows.slice(0, MAX);
+  if (countEl) countEl.textContent = shown.length + (rows.length > MAX ? '/'+rows.length : '') + ' cells';
+
+  const fmtT = t => { const s = Math.max(0,t)/1000; return `${Math.floor(s/60)}:${(s%60).toFixed(2).padStart(5,'0')}`; };
+  const fmtNote = c => { const m = Math.round(69+c/100); return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][m%12]+(Math.floor(m/12)-1); };
+
+  tbody.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  shown.forEach(row => {
+    const isHL = _highlightedCell && _highlightedCell.lineId===row.lineId && Math.abs(_highlightedCell.t-row.t)<30;
+    const tr = document.createElement('tr');
+    tr.style.cssText = `cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);${isHL?'background:rgba(255,220,80,0.10);':''}`;
+    tr.innerHTML =
+      `<td style="padding:2px 8px;color:#7a7890;white-space:nowrap;">${fmtT(row.t)}</td>`+
+      `<td style="padding:2px 8px;"><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${row.color};vertical-align:middle;margin-right:4px;box-shadow:0 0 3px ${row.color}88;"></span><span style="color:#9a9ab0;">T${row.trackIdx+1}</span></td>`+
+      `<td style="padding:2px 8px;color:#5a5870;">L${row.lineId}</td>`+
+      `<td style="padding:2px 8px;color:#c0b8d0;">${fmtNote(row.cents)}</td>`+
+      `<td style="padding:2px 8px;color:#6a9a6a;">${(row.energy*100).toFixed(0)}%</td>`+
+      `<td style="padding:2px 8px;"><span style="color:${_GCOL[row.gesture]||'#888'};font-weight:600;">${row.gesture}</span></td>`+
+      `<td style="padding:2px 8px;color:#4a4860;">${row.confidence?(row.confidence*100).toFixed(0)+'%':'—'}</td>`;
+    tr.addEventListener('click', () => {
+      _highlightedCell = {t: row.t, cents: row.cents, lineId: row.lineId};
+      const tSpan = VP.t1-VP.t0; VP.t0 = row.t-tSpan*0.35; VP.t1 = VP.t0+tSpan;
+      const pSpan = VP.p1-VP.p0, pMid = (VP.p0+VP.p1)/2;
+      VP.p0 = pMid+(row.cents-pMid)*0.6-pSpan/2; VP.p1 = VP.p0+pSpan;
+      render(); renderCellTable();
+      tr.scrollIntoView({block:'nearest'});
+    });
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+}
+</script>
+
+<!-- ════ main.js ════ -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   캔버스 / 래퍼 초기화
+════════════════════════════════════════════════════════════ */
+cv  = document.getElementById('paper');
+ctx = cv.getContext('2d');
+wrap = document.getElementById('paper-wrap');
+console.log('[MB] main.js 초기화 — cv:', !!cv, '/ ctx:', !!ctx, '/ wrap:', !!wrap);
+
+/* ════════════════════════════════════════════════════════════
+   리사이즈
+════════════════════════════════════════════════════════════ */
+window.addEventListener('resize', resize);
+
+/* ════════════════════════════════════════════════════════════
+   Undo
+════════════════════════════════════════════════════════════ */
+function snapshot() { _history.push(JSON.parse(JSON.stringify(_layer.strokes))); if (_history.length > 60) _history.shift(); }
+function undo() { if (!_history.length) return; _layer.strokes = _history.pop(); render(); flashHint('되돌리기'); }
+
+/* ════════════════════════════════════════════════════════════
+   마우스 입력
+════════════════════════════════════════════════════════════ */
+let _panStart = null;
+
+function getCanvasPos(e) {
+  const r = cv.getBoundingClientRect();
+  return {x: e.clientX - r.left, y: e.clientY - r.top};
+}
+
+cv.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  ensureAudio();
+  const {x, y} = getCanvasPos(e);
+  const ms = xt(x), cents = clamp(yl(y), -3600, 3600);
+  if (appMode === 'edit') {
+    if (drawTool === 'draw') {
+      if (_playing) stopPlay();
+      snapshot(); _drawing = {pts: [{time: ms, pitch: cents}], blot: 0};
+      liveStart(cents);
+      _holdStart = performance.now(); _holdAnchor = {x, y}; _holdMoved = false;
+      startHoldWatch(); render();
+    } else {
+      const found = _findNearestPt(ms, cents);
+      if (found) {
+        snapshot(); _catchPoint = found;
+        _catchOrigPts = JSON.parse(JSON.stringify(_layer.strokes[found.strokeIdx].pts));
+        _catchOrigCents = found.cents; _catchTargetCents = found.cents; _catchCurCents = found.cents;
+        _catchDragging = true; liveStart(found.cents); startCatchLoop();
+      }
+    }
+  } else if (appMode === 'wire' && wireMerged) {
+    const hit = wireHitTest(x, y);
+    if (hit) { _wireDrag = hit; ensureAudio(); liveStart(hit.pt.cents); }
+    else { wrap.classList.add('grabbing'); _panStart = {x, y, vp: {...VP}}; }
+  } else {
+    wrap.classList.add('grabbing');
+    _panStart = {x, y, vp: {...VP}};
+  }
+});
+
+cv.addEventListener('mousemove', e => {
+  const {x, y} = getCanvasPos(e);
+  const ms = xt(x), cents = clamp(yl(y), -3600, 3600);
+  if (appMode === 'edit') {
+    if (drawTool === 'draw' && _drawing && e.buttons === 1) {
+      if (_holdAnchor) { const d = Math.hypot(x - _holdAnchor.x, y - _holdAnchor.y); if (d > 4) { _holdMoved = true; _drawing.blot = 0; } }
+      const pts = _drawing.pts, last = pts[pts.length - 1];
+      if (ms - last.time >= 6) { pts.push({time: ms, pitch: cents}); liveUpdate(cents); render(); }
+    } else if (drawTool === 'catch' && _catchDragging) { _catchTargetCents = cents; }
+  } else if (appMode === 'wire' && _wireDrag && e.buttons === 1) {
+    const newCents = clamp(yl(y), -3600, 3600);
+    applyWireDrag(_wireDrag.wl, _wireDrag.pt, newCents);
+    liveUpdate(newCents); render();
+  } else if (_panStart && e.buttons === 1) {
+    const dx = x - _panStart.x, dy = y - _panStart.y;
+    VP = {..._panStart.vp}; vpPanBy(-dx, -dy);
+    refreshLegend(); render();
+  }
+});
+
+cv.addEventListener('mouseup', e => {
+  if (e.button !== 0) return;
+  wrap.classList.remove('grabbing');
+  if (appMode === 'edit') {
+    if (drawTool === 'draw' && _drawing) {
+      cancelAnimationFrame(_holdRAF); _holdAnchor = null; liveStop();
+      const s = _drawing; _drawing = null;
+      if (s.pts.length === 1) {
+        const p = s.pts[0];
+        s.pts = [{time: p.time, pitch: p.pitch}, {time: p.time + 180, pitch: p.pitch}];
+        s.blotRadius = s.blot > 1 ? s.blot : 0;
+        playDot(p.pitch);
+      }
+      if (s.pts.length >= 2) _layer.strokes.push(s); render();
+    }
+    if (drawTool === 'catch' && _catchDragging) { _catchDragging = false; }
+  } else if (appMode === 'wire' && _wireDrag) {
+    liveStop(); _wireDrag = null; render();
+  } else { _panStart = null; }
+});
+
+cv.addEventListener('mouseleave', e => {
+  wrap.classList.remove('grabbing');
+  if (appMode === 'edit' && _drawing) {
+    cancelAnimationFrame(_holdRAF); liveStop();
+    const s = _drawing; _drawing = null;
+    if (s.pts.length >= 2) _layer.strokes.push(s); render();
+  }
+  _panStart = null;
+});
+
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const {x, y} = getCanvasPos(e);
+  const inward = e.deltaY > 0 ? 1.10 : 0.91;
+  if (e.shiftKey) {
+    vpZoomAt(x, y, 1, inward, 1);
+  } else if (e.altKey) {
+    vpZoomAt(x, y, 1, 1, inward);
+  } else {
+    vpZoomAt(x, y, 1, inward, e.deltaY > 0 ? 1.06 : 0.94);
+  }
+  refreshLegend(); render();
+}, {passive: false});
+
+/* ════════════════════════════════════════════════════════════
+   드래그앤드롭
+════════════════════════════════════════════════════════════ */
+wrap.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('drop-overlay').classList.add('show'); });
+wrap.addEventListener('dragleave', () => document.getElementById('drop-overlay').classList.remove('show'));
+wrap.addEventListener('drop', async e => {
+  e.preventDefault(); document.getElementById('drop-overlay').classList.remove('show');
+  const file = [...e.dataTransfer.files].find(f => /\.midi?$/i.test(f.name));
+  if (!file) { flashHint('MIDI 파일(.mid/.midi)을 놓아주세요'); return; }
+  try {
+    const buf = await file.arrayBuffer();
+    const raw = parseMidi(buf);
+    const totalNotes = raw.reduce((s, tr) => s + tr.notes.length, 0);
+    midiTracks = raw; rawMidiTracks = raw; allCells = []; hfResult = []; exprEvents = [];
+    _midiLayers = [{name: file.name, visible: true}]; _globalLineIdOff = 0;
+    midiLines = buildLines(midiTracks, 0, 0);
+    _globalLineIdOff = midiLines.length;
+    const totalDur = midiTracks.flatMap(tr => tr.notes.map(n => n.endMs)).reduce((a, b) => a > b ? a : b, 0);
+    fitView();
+    _mmTotalMs = totalDur;
+    renderLineList();
+    renderMidiLayerPanel();
+    document.getElementById('tab-input-lines').style.display = 'block';
+    renderLayerPanel();
+    document.getElementById('drop-hint').classList.add('hidden');
+    document.getElementById('shortcuts').classList.add('show');
+    const st = document.getElementById('midiStatus');
+    if (st) { st.style.color = '#3d8f6a'; st.textContent = `✓ ${file.name} — ${totalNotes}음 / ${midiLines.length}선`; }
+    log(`드롭: ${file.name} — ${totalNotes}음, ${midiLines.length}선`);
+    setAppMode('view');
+  } catch (err) { console.error(err); log('오류: ' + err.message); }
+});
+
+/* ════════════════════════════════════════════════════════════
+   Hold Watch / Catch
+════════════════════════════════════════════════════════════ */
+function startHoldWatch() {
+  cancelAnimationFrame(_holdRAF);
+  function step() {
+    if (!_drawing) return;
+    const el = performance.now() - _holdStart;
+    if (!_holdMoved && el > HOLD_DELAY) {
+      _drawing.blot = Math.min(HOLD_MAX_R, (el - HOLD_DELAY) * HOLD_GROW);
+      render();
+    }
+    _holdRAF = requestAnimationFrame(step);
+  }
+  _holdRAF = requestAnimationFrame(step);
+}
+
+function _findNearestPt(ms, cents) {
+  let best = null, bestD = Infinity;
+  for (let si = 0; si < _layer.strokes.length; si++) {
+    const pts = _layer.strokes[si].pts;
+    for (let pi = 0; pi < pts.length; pi++) {
+      const p = pts[pi], dx = tx(p.time) - tx(ms), dy = ly(p.pitch) - ly(cents), d = Math.sqrt(dx * dx + dy * dy);
+      if (d < bestD) { bestD = d; best = {strokeIdx: si, ptIdx: pi, ms: p.time, cents: p.pitch}; }
+    }
+  }
+  return bestD < 50 ? best : null;
+}
+function applyPullFresh(curCents) {
+  if (!_catchPoint || !_catchOrigPts) return;
+  const pts = _layer.strokes[_catchPoint.strokeIdx].pts;
+  const anchorTime = _catchPoint.ms, dcents = curCents - _catchOrigCents;
+  for (let i = 0; i < pts.length; i++) {
+    const orig = _catchOrigPts[i], dt = Math.abs(orig.time - anchorTime), falloff = Math.max(0, 1 - dt / PULL_FALLOFF_MS);
+    pts[i].pitch = clamp(orig.pitch + dcents * falloff, -3600, 3600);
+  }
+}
+function startCatchLoop() {
+  cancelAnimationFrame(_catchRAF);
+  function step() {
+    if (!_catchPoint) return;
+    const diff = _catchTargetCents - _catchCurCents; _catchCurCents += diff * 0.22;
+    applyPullFresh(_catchCurCents); liveUpdate(_catchCurCents); render();
+    if (!_catchDragging && Math.abs(_catchTargetCents - _catchCurCents) < 0.6) { finalizeCatch(); return; }
+    _catchRAF = requestAnimationFrame(step);
+  }
+  _catchRAF = requestAnimationFrame(step);
+}
+function finalizeCatch() { cancelAnimationFrame(_catchRAF); liveStop(); _catchPoint = null; _catchOrigPts = null; render(); }
+
+/* ════════════════════════════════════════════════════════════
+   미니맵 클릭 탐색
+════════════════════════════════════════════════════════════ */
+(function () {
+  const mw = document.getElementById('minimap-wrap');
+  function seek(e) {
+    e.stopPropagation();
+    const r = mw.getBoundingClientRect();
+    const cx = (e.clientX) - r.left, cy = (e.clientY) - r.top;
+    const fT1 = Math.max(_mmTotalMs * 1.06, 10000);
+    let fP0 = -1800, fP1 = 1800;
+    if (midiLines.length) {
+      let lo = Infinity, hi = -Infinity;
+      midiLines.forEach(l => l.notes.forEach(n => { const c = midiToCents(n.midi); if (c < lo) lo = c; if (c > hi) hi = c; }));
+      const pad = (hi - lo) * 0.30; fP0 = lo - pad; fP1 = hi + pad;
+      if (fP1 - fP0 < 300) { const m = (fP0 + fP1) / 2; fP0 = m - 150; fP1 = m + 150; }
+    }
+    const tC = cx / 140 * fT1, pC = fP0 + (1 - cy / 70) * (fP1 - fP0);
+    const tH = (VP.t1 - VP.t0) / 2, pH = (VP.p1 - VP.p0) / 2;
+    VP.t0 = tC - tH; VP.t1 = tC + tH; VP.p0 = pC - pH; VP.p1 = pC + pH;
+    render();
+  }
+  mw.addEventListener('mousedown', seek);
+  mw.addEventListener('mousemove', e => { if (e.buttons) seek(e); });
+})();
+
+/* ════════════════════════════════════════════════════════════
+   키보드 단축키
+════════════════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  switch (e.key) {
+    case ' ': e.preventDefault(); togglePlay(); break;
+    case 'z': case 'Z': if (e.ctrlKey || e.metaKey) { e.preventDefault(); undo(); } break;
+    case 'v': case 'V': setAppMode('view'); break;
+    case 'n': case 'N': setAppMode('note'); break;
+    case 'e': case 'E': setAppMode('edit'); break;
+    case 'w': case 'W': setAppMode('wire'); break;
+    case 'd': case 'D': if (appMode === 'edit') setTool('draw'); break;
+    case 'c': case 'C': if (appMode === 'edit') setTool('catch'); break;
+    case 'ArrowLeft': vpPanBy(-CW * 0.12, 0); render(); break;
+    case 'ArrowRight': vpPanBy(CW * 0.12, 0); render(); break;
+    case 'ArrowUp': vpPanBy(0, -CH * 0.12); render(); break;
+    case 'ArrowDown': vpPanBy(0, CH * 0.12); render(); break;
+    case '+': case '=': vpZoomAt(CW / 2, CH / 2, 1, 0.82, 0.88); refreshLegend(); render(); break;
+    case '-': vpZoomAt(CW / 2, CH / 2, 1, 1.22, 1.14); refreshLegend(); render(); break;
+    case '>': case '.': vpZoomAt(CW / 2, CH / 2, 1, 0.80, 1); refreshLegend(); render(); break;
+    case '<': case ',': vpZoomAt(CW / 2, CH / 2, 1, 1.25, 1); refreshLegend(); render(); break;
+  }
+});
+
+/* ════════════════════════════════════════════════════════════
+   초기화
+════════════════════════════════════════════════════════════ */
+resize();
+setAppMode('view');
+log('Melody Brush PC 준비. MIDI를 드래그앤드롭하거나 입력 탭에서 불러오세요.');
+
+/* ════════════════════════════════════════════════════════════
+   🧪 테스트 전용 — 코어라인 재생
+   메인 UI와 완전 분리. 이 블록만 삭제하면 원복.
+════════════════════════════════════════════════════════════ */
+let _testSrcs = [], _testPlaying = false;
+
+function buildEnvelopeLines() {
+  const STEP = 200; // ms
+  const allNotes = midiLines.flatMap(l => l.notes);
+  if (!allNotes.length) return;
+  const totalMs = allNotes.reduce((m, n) => Math.max(m, n.endMs), 0);
+  _topLine = []; _baseLine = [];
+  for (let t = 0; t < totalMs; t += STEP) {
+    const active = allNotes.filter(n => n.startMs < t + STEP && n.endMs > t);
+    if (!active.length) continue;
+    const top  = midiToCents(active.reduce((b, n) => n.midi > b.midi ? n : b, active[0]).midi);
+    const base = midiToCents(active.reduce((b, n) => n.midi < b.midi ? n : b, active[0]).midi);
+    _topLine.push({t: t + STEP / 2, cents: top});
+    _baseLine.push({t: t + STEP / 2, cents: base});
+  }
+}
+
+function toggleTopLine() {
+  if (!_topLine.length) buildEnvelopeLines();
+  _showTopLine = !_showTopLine;
+  const btn = document.getElementById('btn-show-top');
+  btn.style.background = _showTopLine ? 'rgba(255,100,100,0.25)' : 'rgba(255,100,100,0.10)';
+  btn.textContent = _showTopLine ? '🔴 TOP 라인 ON' : '⭕ TOP 라인';
+  render();
+}
+
+function toggleBaseLine() {
+  if (!_baseLine.length) buildEnvelopeLines();
+  _showBaseLine = !_showBaseLine;
+  const btn = document.getElementById('btn-show-base');
+  btn.style.background = _showBaseLine ? 'rgba(80,160,255,0.25)' : 'rgba(80,160,255,0.10)';
+  btn.textContent = _showBaseLine ? '🔵 BASE 라인 ON' : '⭕ BASE 라인';
+  render();
+}
+
+function testCorePlay() {
+  if (_testPlaying) { testCoreStop(); return; }
+  if (!midiLines.length) { alert('MIDI를 먼저 로드하세요'); return; }
+  ensureAudio();
+  if (_audioCtx.state === 'suspended') { _audioCtx.resume().then(testCorePlay); return; }
+
+  // 선택된 라인 우선, 없으면 보컬 후보 1위, 없으면 가장 긴 라인
+  const vocalBest = midiLines.filter(l => l.isVocalCandidate).sort((a, b) => b.vocalScore - a.vocalScore)[0];
+  const target = selectedLine || vocalBest ||
+    midiLines.reduce((best, l) => (l.endMs - l.startMs) > (best.endMs - best.startMs) ? l : best, midiLines[0]);
+
+  const pts = target.smoothCoreline;
+  if (!pts || pts.length < 2) {
+    document.getElementById('test-diag-out').textContent = '코어라인 점이 부족합니다';
+    return;
+  }
+
+  const now = _audioCtx.currentTime;
+  const t0  = now + 0.1;
+  const tBase = pts[0].t; // 상대 시간 기준점
+  const osc  = _audioCtx.createOscillator();
+  const gain = _audioCtx.createGain();
+  osc.type = 'sine';
+  osc.connect(gain); gain.connect(_audioCtx.destination);
+
+  osc.frequency.setValueAtTime(440 * Math.pow(2, pts[0].cents / 1200), t0);
+  pts.forEach(p => {
+    osc.frequency.linearRampToValueAtTime(
+      440 * Math.pow(2, p.cents / 1200),
+      t0 + (p.t - tBase) / 1000   // ← 상대시간으로 수정
+    );
+  });
+
+  const dur = (pts[pts.length-1].t - tBase) / 1000;
+  const tEnd = t0 + dur;
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(0.25, t0 + 0.05);
+  gain.gain.setValueAtTime(0.25, Math.max(t0 + 0.05, tEnd - 0.1));
+  gain.gain.linearRampToValueAtTime(0, tEnd + 0.1);
+
+  osc.start(t0);
+  osc.stop(tEnd + 0.15);
+  _testSrcs.push(osc);
+  _testPlaying = true;
+
+  document.getElementById('test-diag-out').textContent =
+    `재생: L${target.id} (${target.label})\n` +
+    `coreline: ${pts.length}pt / ${dur.toFixed(1)}s\n` +
+    `선 클릭 후 누르면 그 선 재생`;
+  document.getElementById('btn-test-core').textContent = '■ 정지';
+  setTimeout(() => testCoreStop(), (dur + 0.8) * 1000);
+}
+
+function testCoreStop() {
+  _testSrcs.forEach(s => { try { s.stop(0); } catch(e) {} });
+  _testSrcs = []; _testPlaying = false;
+  const b1 = document.getElementById('btn-test-core');  if (b1) b1.textContent = '▶ 코어라인 재생';
+  const b2 = document.getElementById('btn-test-vocal'); if (b2) b2.textContent = '🎤 보컬 재생';
+  const b3 = document.getElementById('btn-chunk-play');   if (b3) b3.textContent = '▶ 구간 핵심 재생';
+  const b4 = document.getElementById('btn-balance-play'); if (b4) b4.textContent = '▶ 균형점 재생';
+}
+
+/* ════════════════════════════════════════════════════════════
+   구간 핵심 검증 — 청크별 후보 1개 추출 후 귀로 판단
+════════════════════════════════════════════════════════════ */
+function buildAndPlayChunkCore() {
+  if (_testPlaying) { testCoreStop(); return; }
+  if (!midiLines.length) { document.getElementById('test-diag-out').textContent = 'MIDI를 먼저 로드하세요'; return; }
+  ensureAudio();
+  if (_audioCtx.state === 'suspended') { _audioCtx.resume().then(buildAndPlayChunkCore); return; }
+
+  const chunkMs = +document.getElementById('chunk-size').value || 500;
+  const method  = document.querySelector('input[name="chunk-method"]:checked')?.value || 'energy';
+
+  const allNotes = midiLines.flatMap(l => l.notes);
+  if (!allNotes.length) return;
+  const totalMs = allNotes.reduce((m, n) => Math.max(m, n.endMs), 0);
+
+  const chunks = [];
+  for (let t = 0; t < totalMs; t += chunkMs) {
+    const tEnd = t + chunkMs;
+    const active = allNotes.filter(n => n.startMs < tEnd && n.endMs > t);
+    if (!active.length) { chunks.push(null); continue; }
+
+    const topNote = active.reduce((b, n) => n.midi > b.midi ? n : b, active[0]);
+    const botNote = active.reduce((b, n) => n.midi < b.midi ? n : b, active[0]);
+    const topCents = midiToCents(topNote.midi);
+    const botCents = midiToCents(botNote.midi);
+    const avgEnergy = active.reduce((s, n) => s + n.velocity, 0) / active.length / 127;
+
+    let cents;
+    if (method === 'energy') {
+      const w = active.reduce((b, n) => n.velocity > b.velocity ? n : b, active[0]);
+      cents = midiToCents(w.midi);
+    } else if (method === 'highest') {
+      const pool = active.filter(n => n.velocity >= 38);
+      const w = (pool.length ? pool : active).reduce((b, n) => n.midi > b.midi ? n : b, active[0]);
+      cents = midiToCents(w.midi);
+    } else if (method === 'combo') {
+      const w = active.reduce((b, n) => {
+        const sc = (n.velocity / 127) * 0.5 + (n.midi / 127) * 0.5;
+        const bs = (b.velocity / 127) * 0.5 + (b.midi / 127) * 0.5;
+        return sc > bs ? n : b;
+      }, active[0]);
+      cents = midiToCents(w.midi);
+    } else if (method === 'top_blend') {
+      // TOP × 비율 + BASE × (1-비율) — 순수 위치 가중 합산
+      const ratio = +document.getElementById('top-ratio').value;
+      cents = topCents * ratio + botCents * (1 - ratio);
+    } else {
+      // top_smooth: TOP을 alpha 속도로 부드럽게 따라감
+      cents = topCents; // alpha 적용은 아래서
+    }
+    chunks.push({t, cents, topCents, botCents, energy: avgEnergy});
+  }
+
+  // top_smooth: 청크 배열에 지수 스무딩 적용
+  if (method === 'top_smooth') {
+    const alpha = +document.getElementById('smooth-alpha').value;
+    let prev = null;
+    chunks.forEach(c => {
+      if (!c) return;
+      if (prev === null) { prev = c.topCents; c.cents = prev; return; }
+      prev = prev * (1 - alpha) + c.topCents * alpha;
+      c.cents = prev;
+    });
+  }
+
+  // 재생
+  const now = _audioCtx.currentTime;
+  const t0 = now + 0.1;
+  const chunkSec = chunkMs / 1000;
+  const att = Math.min(0.025, chunkSec * 0.08);
+  const rel = Math.min(0.045, chunkSec * 0.12);
+
+  const master = _audioCtx.createGain();
+  master.gain.value = 0.65;
+  master.connect(_audioCtx.destination);
+  _testSrcs.push(master);
+
+  chunks.forEach((c, i) => {
+    if (!c) return;
+    const ts = t0 + i * chunkSec;
+    const osc = _audioCtx.createOscillator();
+    const g   = _audioCtx.createGain();
+    osc.type  = 'sine';
+    osc.frequency.value = 440 * Math.pow(2, c.cents / 1200);
+    g.gain.setValueAtTime(0, ts);
+    g.gain.linearRampToValueAtTime(0.12 + c.energy * 0.22, ts + att);
+    g.gain.setValueAtTime(0.12 + c.energy * 0.22, ts + chunkSec - rel);
+    g.gain.linearRampToValueAtTime(0, ts + chunkSec);
+    osc.connect(g); g.connect(master);
+    osc.start(ts); osc.stop(ts + chunkSec + 0.05);
+    _testSrcs.push(osc);
+  });
+
+  _testPlaying = true;
+  const totalDur = (chunks.length * chunkMs) / 1000;
+  document.getElementById('btn-chunk-play').textContent = '■ 정지';
+  const methodLabel = {energy:'최고 에너지', highest:'최고 음', combo:'에너지+음높이'}[method];
+  document.getElementById('test-diag-out').textContent =
+    `구간 핵심 재생\n청크: ${chunkMs}ms × ${chunks.filter(Boolean).length}개 / ${totalDur.toFixed(0)}s\n방식: ${methodLabel}\n\n들었을 때 "이 곡이다" 싶으면\nCore에 가까운 것!`;
+  setTimeout(() => testCoreStop(), (totalDur + 0.5) * 1000);
+}
+
+/* ════════════════════════════════════════════════════════════
+   TOP·BASE 균형점 실험
+   TOP = 빠른 레이어 (표현, 비브라토)
+   BASE = 느린 레이어 (화성 중심, 안정)
+   균형점 = BASE + (TOP - BASE) × 가중치
+════════════════════════════════════════════════════════════ */
+function playBalanceCore() {
+  if (_testPlaying) { testCoreStop(); return; }
+  if (!midiLines.length) { document.getElementById('test-diag-out').textContent = 'MIDI를 먼저 로드하세요'; return; }
+  ensureAudio();
+  if (_audioCtx.state === 'suspended') { _audioCtx.resume().then(playBalanceCore); return; }
+
+  const chunkMs  = +document.getElementById('bal-chunk').value  || 300;
+  const alphaTop = +document.getElementById('bal-alpha-top').value;
+  const alphaBase= +document.getElementById('bal-alpha-base').value;
+  const weight   = +document.getElementById('bal-weight').value;
+
+  const allNotes = midiLines.flatMap(l => l.notes);
+  if (!allNotes.length) return;
+  const totalMs = allNotes.reduce((m, n) => Math.max(m, n.endMs), 0);
+
+  // 1단계: 청크별 TOP/BASE 원시값 수집
+  const raw = [];
+  for (let t = 0; t < totalMs; t += chunkMs) {
+    const tEnd = t + chunkMs;
+    const active = allNotes.filter(n => n.startMs < tEnd && n.endMs > t);
+    if (!active.length) { raw.push(null); continue; }
+    const topCents  = midiToCents(active.reduce((b, n) => n.midi > b.midi ? n : b, active[0]).midi);
+    const baseCents = midiToCents(active.reduce((b, n) => n.midi < b.midi ? n : b, active[0]).midi);
+    raw.push({topCents, baseCents});
+  }
+
+  // 2단계: BASE에 가우시안 팬 적용 (인접 청크까지 퍼지는 파동)
+  const FAN_CHUNKS = 4; // 앞뒤 4청크까지 영향
+  const rawBase = raw.map((r, i) => {
+    if (!r) return null;
+    let wSum = 0, wVal = 0;
+    for (let di = -FAN_CHUNKS; di <= FAN_CHUNKS; di++) {
+      const j = i + di;
+      if (j < 0 || j >= raw.length || !raw[j]) continue;
+      const w = Math.exp(-(di * di) / (FAN_CHUNKS * FAN_CHUNKS * 0.5));
+      wSum += w; wVal += raw[j].baseCents * w;
+    }
+    return wSum > 0 ? wVal / wSum : r.baseCents;
+  });
+
+  // 3단계: TOP 지수 스무딩 + 균형점 계산
+  let topSmooth = null, baseSmooth = null;
+  const points = [];
+  raw.forEach((r, i) => {
+    if (!r) { points.push(null); return; }
+    const topCents  = r.topCents;
+    const baseFan   = rawBase[i] ?? r.baseCents;
+
+    topSmooth  = topSmooth  === null ? topCents : topSmooth  * (1 - alphaTop)  + topCents  * alphaTop;
+    baseSmooth = baseSmooth === null ? baseFan  : baseSmooth * (1 - alphaBase) + baseFan   * alphaBase;
+
+    const balance = baseSmooth + (topSmooth - baseSmooth) * weight;
+    points.push({t: i * chunkMs, cents: balance});
+  });
+
+  // 재생 — 균형점마다 루트+5도+옥타브 3겹 울림
+  const now = _audioCtx.currentTime;
+  const t0  = now + 0.12;
+  const chunkSec = chunkMs / 1000;
+  const att = Math.min(0.025, chunkSec * 0.10);
+  const rel = Math.min(0.06,  chunkSec * 0.18);
+
+  // 컴프레서로 클리핑 방지
+  const comp = _audioCtx.createDynamicsCompressor();
+  comp.threshold.value = -18; comp.ratio.value = 8;
+  comp.connect(_audioCtx.destination);
+  _testSrcs.push(comp);
+
+  const master = _audioCtx.createGain();
+  master.gain.value = 0.55;
+  master.connect(comp);
+  _testSrcs.push(master);
+
+  // 루트 / 5도(+700c) / 옥타브(+1200c) — 볼륨 비율
+  const LAYERS = [
+    {offset: 0,    vol: 0.42, type: 'triangle'},
+    {offset: 700,  vol: 0.22, type: 'sine'},
+    {offset: 1200, vol: 0.14, type: 'sine'},
+  ];
+
+  points.forEach((p, i) => {
+    if (!p) return;
+    const ts  = t0 + i * chunkSec;
+    const tEnd = ts + chunkSec;
+
+    LAYERS.forEach(layer => {
+      const freq = 440 * Math.pow(2, (p.cents + layer.offset) / 1200);
+      const osc  = _audioCtx.createOscillator();
+      const g    = _audioCtx.createGain();
+      osc.type   = layer.type;
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0, ts);
+      g.gain.linearRampToValueAtTime(layer.vol, ts + att);
+      g.gain.setValueAtTime(layer.vol, tEnd - rel);
+      g.gain.linearRampToValueAtTime(0, tEnd);
+      osc.connect(g); g.connect(master);
+      osc.start(ts); osc.stop(tEnd + 0.05);
+      _testSrcs.push(osc);
+    });
+  });
+
+  _testPlaying = true;
+  const totalDur = (points.length * chunkMs) / 1000;
+  document.getElementById('btn-balance-play').textContent = '■ 정지';
+  document.getElementById('test-diag-out').textContent =
+    `TOP·BASE 균형점 재생\n청크: ${chunkMs}ms / 총: ${totalDur.toFixed(0)}s\nTOP α=${alphaTop} · BASE α=${alphaBase}\n가중치(TOP방향)=${weight}\n\n"이 곡이다" 싶으면 균형점 발견!`;
+  setTimeout(() => testCoreStop(), (totalDur + 0.5) * 1000);
+}
+
+function testVocalPlay() {
+  if (_testPlaying) { testCoreStop(); return; }
+  if (!midiLines.length) { alert('MIDI를 먼저 로드하세요'); return; }
+  ensureAudio();
+  if (_audioCtx.state === 'suspended') { _audioCtx.resume().then(testVocalPlay); return; }
+
+  const candidates = midiLines.filter(l => l.isVocalCandidate && l.smoothCoreline?.length >= 2);
+  if (!candidates.length) {
+    document.getElementById('test-diag-out').textContent = '보컬 후보가 없습니다.\n먼저 [🎤 보컬 분석]을 실행하세요.';
+    return;
+  }
+
+  // 곡 전체 시작점 (가장 이른 pts[0].t)
+  let tSongMin = Infinity;
+  candidates.forEach(l => { tSongMin = Math.min(tSongMin, l.smoothCoreline[0].t); });
+
+  const now = _audioCtx.currentTime;
+  const t0  = now + 0.15;
+
+  // 마스터 게인: n개 오실레이터 합산 클리핑 방지
+  const masterGain = _audioCtx.createGain();
+  masterGain.gain.value = 1.4 / Math.sqrt(candidates.length);
+  masterGain.connect(_audioCtx.destination);
+  _testSrcs.push(masterGain);
+
+  let maxDur = 0;
+  candidates.forEach(line => {
+    const pts = line.smoothCoreline;
+    const osc = _audioCtx.createOscillator();
+    const g   = _audioCtx.createGain();
+    osc.type  = 'sine';
+    osc.connect(g); g.connect(masterGain);
+
+    const lineStartSec = (pts[0].t - tSongMin) / 1000;
+    const lineDurSec   = (pts[pts.length-1].t - pts[0].t) / 1000;
+    const tLineStart   = t0 + lineStartSec;
+    const tLineEnd     = tLineStart + lineDurSec;
+
+    osc.frequency.setValueAtTime(440 * Math.pow(2, pts[0].cents / 1200), tLineStart);
+    pts.forEach(p => {
+      osc.frequency.linearRampToValueAtTime(
+        440 * Math.pow(2, p.cents / 1200),
+        t0 + (p.t - tSongMin) / 1000
+      );
+    });
+
+    g.gain.setValueAtTime(0, tLineStart);
+    g.gain.linearRampToValueAtTime(0.30, tLineStart + 0.06);
+    g.gain.setValueAtTime(0.30, Math.max(tLineStart + 0.06, tLineEnd - 0.12));
+    g.gain.linearRampToValueAtTime(0, tLineEnd + 0.12);
+
+    osc.start(tLineStart);
+    osc.stop(tLineEnd + 0.2);
+    _testSrcs.push(osc);
+
+    maxDur = Math.max(maxDur, lineStartSec + lineDurSec);
+  });
+
+  _testPlaying = true;
+  document.getElementById('btn-test-vocal').textContent = '■ 보컬 정지';
+  document.getElementById('test-diag-out').textContent =
+    `🎤 보컬 후보 ${candidates.length}개 재생 중\n` +
+    candidates.map(l => `  L${l.id} score=${l.vocalScore.toFixed(3)}`).join('\n');
+  setTimeout(() => testCoreStop(), (maxDur + 1) * 1000);
+}
+
+function testDiag() {
+  const out = document.getElementById('test-diag-out');
+  const ctx2 = _audioCtx;
+  let msg = '';
+  msg += `AudioCtx: ${ctx2 ? ctx2.state : '없음'}\n`;
+  msg += `midiLines: ${midiLines.length}개\n`;
+  midiLines.forEach((l, i) => {
+    const sc = l.smoothCoreline || [];
+    msg += `  L${i}: coreline ${sc.length}pt\n`;
+  });
+  out.textContent = msg;
+}
+
+function testBeep() {
+  ensureAudio();
+  if (_audioCtx.state === 'suspended') { _audioCtx.resume().then(testBeep); return; }
+  const o = _audioCtx.createOscillator();
+  const g = _audioCtx.createGain();
+  o.connect(g); g.connect(_audioCtx.destination);
+  o.frequency.value = 440;
+  g.gain.setValueAtTime(0.2, _audioCtx.currentTime);
+  g.gain.linearRampToValueAtTime(0, _audioCtx.currentTime + 0.5);
+  o.start(); o.stop(_audioCtx.currentTime + 0.5);
+  document.getElementById('test-diag-out').textContent = '🔊 440Hz 비프 재생됨';
+}
+</script>
+
+<!-- 🧪 테스트 패널 — 메인 UI와 완전 분리 -->
+<div id="test-panel" style="
+  position:fixed;bottom:14px;right:168px;
+  background:rgba(18,16,30,0.93);
+  border:1px solid rgba(140,120,255,0.25);
+  border-radius:12px;padding:14px 18px;
+  z-index:9999;min-width:200px;max-width:220px;
+  max-height:calc(100vh - 28px);
+  overflow-y:auto;overflow-x:hidden;
+  box-shadow:0 4px 24px rgba(0,0,0,0.4);
+  font-family:monospace;
+  scrollbar-width:thin;scrollbar-color:rgba(140,120,255,0.3) transparent;
+">
+  <div id="test-panel-handle" style="font-size:.68rem;font-weight:700;letter-spacing:.08em;color:#8878cc;margin-bottom:10px;cursor:grab;user-select:none;">🧪 테스트 메뉴 ⠿</div>
+  <button onclick="testDiag()" style="
+    width:100%;padding:6px 10px;border:none;border-radius:8px;margin-bottom:6px;
+    background:rgba(80,200,120,0.15);color:#80e8a0;
+    font-size:.68rem;font-weight:700;font-family:monospace;cursor:pointer;
+    border:1px solid rgba(80,200,120,0.22);">🔍 진단</button>
+  <button onclick="testBeep()" style="
+    width:100%;padding:6px 10px;border:none;border-radius:8px;margin-bottom:6px;
+    background:rgba(255,200,80,0.15);color:#ffe080;
+    font-size:.68rem;font-weight:700;font-family:monospace;cursor:pointer;
+    border:1px solid rgba(255,200,80,0.22);">🔊 오디오 테스트</button>
+  <button id="btn-test-core" onclick="testCorePlay()" style="
+    width:100%;padding:8px 10px;border:none;border-radius:8px;
+    background:rgba(140,120,255,0.18);color:#c8beff;
+    font-size:.72rem;font-weight:700;font-family:monospace;
+    cursor:pointer;letter-spacing:.03em;
+    border:1px solid rgba(140,120,255,0.22);margin-bottom:6px;
+  ">▶ 코어라인 재생</button>
+
+  <div style="height:1px;background:rgba(255,255,255,0.08);margin:6px 0;"></div>
+  <div style="height:1px;background:rgba(255,255,255,0.08);margin:6px 0;"></div>
+  <div style="font-size:.60rem;color:#8878cc;font-weight:700;letter-spacing:.06em;margin-bottom:6px;">📊 범위 라인</div>
+  <div style="display:flex;gap:5px;margin-bottom:8px;">
+    <button id="btn-show-top" onclick="toggleTopLine()" style="
+      flex:1;padding:6px 4px;border:none;border-radius:7px;
+      background:rgba(255,100,100,0.10);color:#ff8888;
+      font-size:.62rem;font-weight:700;font-family:monospace;cursor:pointer;
+      border:1px solid rgba(255,100,100,0.25);">⭕ TOP 라인</button>
+    <button id="btn-show-base" onclick="toggleBaseLine()" style="
+      flex:1;padding:6px 4px;border:none;border-radius:7px;
+      background:rgba(80,160,255,0.10);color:#88bbff;
+      font-size:.62rem;font-weight:700;font-family:monospace;cursor:pointer;
+      border:1px solid rgba(80,160,255,0.25);">⭕ BASE 라인</button>
+  </div>
+  <div style="font-size:.60rem;color:#8878cc;font-weight:700;letter-spacing:.06em;margin-bottom:6px;">🎤 보컬 가이드라인</div>
+
+  <button onclick="scoreAllVocalLines()" style="
+    width:100%;padding:6px 10px;border:none;border-radius:8px;margin-bottom:6px;
+    background:rgba(255,180,60,0.15);color:#ffcc70;
+    font-size:.68rem;font-weight:700;font-family:monospace;cursor:pointer;
+    border:1px solid rgba(255,180,60,0.25);">🎤 보컬 분석</button>
+  <button id="btn-vocal-filter" onclick="toggleVocalFilter()" style="
+    width:100%;padding:6px 10px;border:none;border-radius:8px;margin-bottom:6px;
+    background:rgba(80,160,255,0.13);color:#80c8ff;
+    font-size:.68rem;font-weight:700;font-family:monospace;cursor:pointer;
+    border:1px solid rgba(80,160,255,0.25);">👁 보컬 필터 OFF</button>
+  <button id="btn-test-vocal" onclick="testVocalPlay()" style="
+    width:100%;padding:8px 10px;border:none;border-radius:8px;
+    background:rgba(255,215,0,0.13);color:#ffd700;
+    font-size:.72rem;font-weight:700;font-family:monospace;
+    cursor:pointer;letter-spacing:.03em;
+    border:1px solid rgba(255,215,0,0.25);">🎤 보컬 재생</button>
+
+  <div style="height:1px;background:rgba(255,255,255,0.08);margin:8px 0;"></div>
+  <div style="font-size:.60rem;color:#8878cc;font-weight:700;letter-spacing:.06em;margin-bottom:8px;">🔬 구간 핵심 검증</div>
+
+  <div style="font-size:.60rem;color:#9a90b8;margin-bottom:4px;">청크 크기</div>
+  <select id="chunk-size" style="
+    width:100%;padding:4px 8px;border:none;border-radius:6px;margin-bottom:8px;
+    background:rgba(255,255,255,0.07);color:#c8c0e0;
+    font-size:.66rem;font-family:monospace;cursor:pointer;
+    border:1px solid rgba(255,255,255,0.12);">
+    <option value="250">250ms — 아주 빠름</option>
+    <option value="500" selected>500ms — 보통</option>
+    <option value="1000">1s — 느림</option>
+    <option value="2000">2s — 큰 덩어리</option>
+  </select>
+
+  <div style="font-size:.60rem;color:#9a90b8;margin-bottom:4px;">후보 선택 방식</div>
+  <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:6px;">
+    <label style="font-size:.62rem;color:#c0b8d8;cursor:pointer;">
+      <input type="radio" name="chunk-method" value="energy"> 최고 에너지
+    </label>
+    <label style="font-size:.62rem;color:#c0b8d8;cursor:pointer;">
+      <input type="radio" name="chunk-method" value="highest"> 최고 음
+    </label>
+    <label style="font-size:.62rem;color:#c0b8d8;cursor:pointer;">
+      <input type="radio" name="chunk-method" value="combo"> 에너지 + 음높이
+    </label>
+    <div style="height:1px;background:rgba(255,255,255,0.07);margin:3px 0;"></div>
+    <label style="font-size:.62rem;color:#ffe090;cursor:pointer;font-weight:700;">
+      <input type="radio" name="chunk-method" value="top_blend" checked> A. TOP×비율 + BASE×비율
+    </label>
+    <div id="wrap-top-ratio" style="padding-left:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:.58rem;color:#9a90b8;">
+        <span>TOP 비율</span><span id="v-top-ratio">0.75</span>
+      </div>
+      <input type="range" id="top-ratio" min="0.5" max="1.0" step="0.05" value="0.75"
+        style="width:100%;margin:2px 0 4px;"
+        oninput="document.getElementById('v-top-ratio').textContent=parseFloat(this.value).toFixed(2)">
+    </div>
+    <label style="font-size:.62rem;color:#90e8c0;cursor:pointer;font-weight:700;">
+      <input type="radio" name="chunk-method" value="top_smooth"> B. TOP 부드럽게 추적
+    </label>
+    <div id="wrap-smooth-alpha" style="padding-left:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:.58rem;color:#9a90b8;">
+        <span>추적 속도 (α)</span><span id="v-smooth-alpha">0.35</span>
+      </div>
+      <input type="range" id="smooth-alpha" min="0.05" max="1.0" step="0.05" value="0.35"
+        style="width:100%;margin:2px 0 4px;"
+        oninput="document.getElementById('v-smooth-alpha').textContent=parseFloat(this.value).toFixed(2)">
+      <div style="font-size:.56rem;color:#6a6880;">낮을수록 느리게·부드럽게</div>
+    </div>
+  </div>
+
+  <button id="btn-chunk-play" onclick="buildAndPlayChunkCore()" style="
+    width:100%;padding:9px 10px;border:none;border-radius:8px;
+    background:rgba(100,220,180,0.14);color:#80ecc8;
+    font-size:.72rem;font-weight:700;font-family:monospace;
+    cursor:pointer;letter-spacing:.03em;
+    border:1px solid rgba(100,220,180,0.28);">▶ 구간 핵심 재생</button>
+
+  <div style="height:1px;background:rgba(255,255,255,0.08);margin:8px 0;"></div>
+  <div style="font-size:.60rem;color:#8878cc;font-weight:700;letter-spacing:.06em;margin-bottom:8px;">⚖ TOP · BASE 균형점</div>
+
+  <div style="font-size:.58rem;color:#9a90b8;margin-bottom:2px;">청크 크기</div>
+  <select id="bal-chunk" style="width:100%;padding:4px 8px;border:none;border-radius:6px;margin-bottom:7px;background:rgba(255,255,255,0.07);color:#c8c0e0;font-size:.64rem;font-family:monospace;border:1px solid rgba(255,255,255,0.12);">
+    <option value="200">200ms</option>
+    <option value="300" selected>300ms</option>
+    <option value="500">500ms</option>
+    <option value="1000">1s</option>
+  </select>
+
+  <div style="display:flex;justify-content:space-between;font-size:.58rem;color:#ff9988;margin-bottom:1px;">
+    <span>TOP 속도 (빠를수록↑)</span><span id="v-bal-top">0.65</span>
+  </div>
+  <input type="range" id="bal-alpha-top" min="0.1" max="1.0" step="0.05" value="0.65"
+    style="width:100%;margin-bottom:6px;"
+    oninput="document.getElementById('v-bal-top').textContent=parseFloat(this.value).toFixed(2)">
+
+  <div style="display:flex;justify-content:space-between;font-size:.58rem;color:#88ccff;margin-bottom:1px;">
+    <span>BASE 속도 (느릴수록↓)</span><span id="v-bal-base">0.08</span>
+  </div>
+  <input type="range" id="bal-alpha-base" min="0.02" max="0.4" step="0.02" value="0.08"
+    style="width:100%;margin-bottom:6px;"
+    oninput="document.getElementById('v-bal-base').textContent=parseFloat(this.value).toFixed(2)">
+
+  <div style="display:flex;justify-content:space-between;font-size:.58rem;color:#ccff88;margin-bottom:1px;">
+    <span>균형 (0=BASE · 1=TOP)</span><span id="v-bal-weight">0.65</span>
+  </div>
+  <input type="range" id="bal-weight" min="0.0" max="1.0" step="0.05" value="0.65"
+    style="width:100%;margin-bottom:8px;"
+    oninput="document.getElementById('v-bal-weight').textContent=parseFloat(this.value).toFixed(2)">
+
+  <button id="btn-balance-play" onclick="playBalanceCore()" style="
+    width:100%;padding:9px 10px;border:none;border-radius:8px;
+    background:rgba(180,140,255,0.16);color:#d8c0ff;
+    font-size:.72rem;font-weight:700;font-family:monospace;
+    cursor:pointer;letter-spacing:.03em;
+    border:1px solid rgba(180,140,255,0.30);">▶ 균형점 재생</button>
+
+  <div id="test-diag-out" style="font-size:.60rem;color:#7a70a0;margin-top:8px;line-height:1.6;white-space:pre;"></div>
+</div>
+
+<script>
+(function() {
+  const panel  = document.getElementById('test-panel');
+  const handle = document.getElementById('test-panel-handle');
+  let dragging = false, ox = 0, oy = 0;
+  handle.addEventListener('mousedown', e => {
+    dragging = true;
+    const r = panel.getBoundingClientRect();
+    ox = e.clientX - r.left; oy = e.clientY - r.top;
+    handle.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    panel.style.right = 'auto'; panel.style.bottom = 'auto';
+    panel.style.left = (e.clientX - ox) + 'px';
+    panel.style.top  = (e.clientY - oy) + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    dragging = false; handle.style.cursor = 'grab';
+  });
+})();
+</script>
+
+<!-- ════ CELL INSPECTOR PANEL ════ -->
+<div id="cell-panel" style="display:none;position:fixed;bottom:0;left:240px;right:0;height:260px;background:#13131d;border-top:2px solid rgba(255,255,255,0.08);z-index:60;flex-direction:column;font-family:monospace;">
+  <!-- 헤더 / 필터 -->
+  <div style="display:flex;align-items:center;gap:8px;padding:4px 10px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;background:#1a1a28;">
+    <span style="font-size:.58rem;font-weight:700;color:#4a4860;letter-spacing:.10em;">CELL INSPECTOR</span>
+    <select id="ci-gesture" onchange="renderCellTable()" style="font-size:.62rem;background:#242432;color:#a0a0b8;border:1px solid rgba(255,255,255,0.10);padding:1px 4px;border-radius:3px;cursor:pointer;">
+      <option value="">모든 Gesture</option>
+      <option value="ATTACK">ATTACK</option>
+      <option value="HOLD">HOLD</option>
+      <option value="VIBRATO">VIBRATO</option>
+      <option value="GLIDE">GLIDE</option>
+      <option value="DECAY">DECAY</option>
+      <option value="TAIL">TAIL</option>
+      <option value="NOISE">NOISE</option>
+    </select>
+    <label style="font-size:.62rem;color:#6a6880;cursor:pointer;user-select:none;"><input type="checkbox" id="ci-track-only" onchange="renderCellTable()"> 포커스 트랙</label>
+    <label style="font-size:.62rem;color:#6a6880;cursor:pointer;user-select:none;"><input type="checkbox" id="ci-line-only" onchange="renderCellTable()"> 선택 선</label>
+    <span id="ci-count" style="font-size:.58rem;color:#3a3850;margin-left:auto;"></span>
+    <button onclick="_highlightedCell=null;render();toggleCellPanel();" style="font-size:.72rem;background:none;border:none;color:#4a4860;cursor:pointer;padding:0 4px;line-height:1;">✕</button>
+  </div>
+  <!-- 테이블 -->
+  <div style="flex:1;overflow:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:.60rem;">
+      <thead style="position:sticky;top:0;background:#1e1e2e;z-index:1;">
+        <tr style="color:#4a4860;text-align:left;">
+          <th style="padding:3px 8px;font-weight:600;">Time</th>
+          <th style="padding:3px 8px;font-weight:600;">Track</th>
+          <th style="padding:3px 8px;font-weight:600;">Line</th>
+          <th style="padding:3px 8px;font-weight:600;">Note</th>
+          <th style="padding:3px 8px;font-weight:600;">Energy</th>
+          <th style="padding:3px 8px;font-weight:600;">Gesture</th>
+          <th style="padding:3px 8px;font-weight:600;">Conf</th>
+        </tr>
+      </thead>
+      <tbody id="cell-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>

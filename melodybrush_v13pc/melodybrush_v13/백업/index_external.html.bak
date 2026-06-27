@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Melody Brush — PC</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ════ 사이드 패널 ════ -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <div id="sidebar-logo">Melody Brush</div>
+    <div id="sidebar-sub">Expression Edition · PC</div>
+  </div>
+
+  <div id="panel-tabs">
+    <button class="ptab on"  data-tab="tab-input"  onclick="switchPanelTab(this)">입력</button>
+    <button class="ptab"     data-tab="tab-cell"   onclick="switchPanelTab(this)">Cell</button>
+    <button class="ptab"     data-tab="tab-hf"     onclick="switchPanelTab(this)">HFilter</button>
+    <button class="ptab"     data-tab="tab-line"   onclick="switchPanelTab(this)">Line</button>
+    <button class="ptab"     data-tab="tab-expr"   onclick="switchPanelTab(this)">Expr</button>
+    <button class="ptab"     data-tab="tab-result" onclick="switchPanelTab(this)">결과</button>
+    <button class="ptab"     data-tab="tab-wire"   onclick="switchPanelTab(this)">전선</button>
+  </div>
+
+  <div id="panel-scroll">
+    <!-- 입력 탭 -->
+    <div class="tab-section on" id="tab-input">
+      <div>
+        <div class="mp-label">① MIDI 파일 <span style="font-size:.58rem;color:#b0a898">드래그앤드롭 가능</span></div>
+        <input type="file" class="mf" id="midiFile" accept=".mid,.midi">
+      </div>
+      <div>
+        <div class="mp-label">② 원본 오디오 <span style="font-size:.58rem;color:#b0a898">(선택)</span></div>
+        <input type="file" class="mf" id="audioFile" accept="audio/*">
+        <div id="audioStatus"></div>
+      </div>
+      <div style="display:flex;gap:5px;">
+        <button class="mp-btn mp-btn-pri" onclick="runAnalysis()" style="flex:2">분석 실행</button>
+        <button class="mp-btn mp-btn-sec" onclick="runDemo()"     style="flex:1">데모</button>
+      </div>
+    </div>
+
+    <!-- Cell 탭 -->
+    <div class="tab-section" id="tab-cell">
+      <div class="mp-title">Cell 분해</div>
+      <div class="mp-label">Cell 크기 <span class="vv" id="v_cell">80ms</span></div>
+      <input type="range" class="msl" id="cellMs" min="20" max="200" step="10" value="80">
+      <div class="mp-label">Attack 임계 <span class="vv" id="v_atk">0.25</span></div>
+      <input type="range" class="msl" id="atkThr" min="0.05" max="0.60" step="0.05" value="0.25">
+      <div class="mp-label">Vibrato (cent) <span class="vv" id="v_vib">40</span></div>
+      <input type="range" class="msl" id="vibCent" min="10" max="120" step="5" value="40">
+      <div class="mp-label">Decay 기울기 <span class="vv" id="v_dec">0.15</span></div>
+      <input type="range" class="msl" id="decThr" min="0.05" max="0.50" step="0.05" value="0.15">
+    </div>
+
+    <!-- HFilter 탭 -->
+    <div class="tab-section" id="tab-hf">
+      <div class="mp-title">Human Filter</div>
+      <div class="mp-label">적용 강도 <span class="vv" id="v_hfstr">1.0</span></div>
+      <input type="range" class="msl" id="hfStrength" min="0" max="1" step="0.1" value="1.0">
+      <div class="mp-label">Vibrato 최소 지속 <span class="vv" id="v_vdur">120ms</span></div>
+      <input type="range" class="msl" id="vibDur" min="40" max="300" step="10" value="120">
+      <div class="mp-label">Glide 최소 이동 <span class="vv" id="v_gmin">80cent</span></div>
+      <input type="range" class="msl" id="glideMin" min="30" max="200" step="10" value="80">
+      <div class="mp-label">True Change 임계 <span class="vv" id="v_tch">150cent</span></div>
+      <input type="range" class="msl" id="trueThr" min="80" max="300" step="10" value="150">
+    </div>
+
+    <!-- Line 탭 -->
+    <div class="tab-section" id="tab-line">
+      <div class="mp-title">Line 분리</div>
+      <div class="mp-label">Gap 임계 <span class="vv" id="v_gap">250ms</span></div>
+      <input type="range" class="msl" id="gapThr" min="50" max="800" step="25" value="250">
+      <div class="mp-label">Pitch Jump 임계 <span class="vv" id="v_pjump">500cent</span></div>
+      <input type="range" class="msl" id="pitchJump" min="100" max="1200" step="50" value="500">
+      <div class="mp-label">최소 Note 수 <span class="vv" id="v_minn">2</span></div>
+      <input type="range" class="msl" id="minNotes" min="1" max="8" step="1" value="2">
+    </div>
+
+    <!-- Expr 탭 -->
+    <div class="tab-section" id="tab-expr">
+      <div class="mp-title">Expression Engine</div>
+      <div class="mp-label">PB 범위 (semi) <span class="vv" id="v_pbr">2</span></div>
+      <input type="range" class="msl" id="pbRange" min="1" max="12" step="1" value="2">
+      <div class="mp-label">Vibrato PB 깊이 <span class="vv" id="v_vbpb">0.7</span></div>
+      <input type="range" class="msl" id="vibPbDepth" min="0.1" max="1.0" step="0.1" value="0.7">
+      <div class="mp-label">Glide PB 강도 <span class="vv" id="v_glpb">0.8</span></div>
+      <input type="range" class="msl" id="glidePb" min="0.1" max="1.0" step="0.1" value="0.8">
+      <div class="mp-label">CC11 Decay 곡선 <span class="vv" id="v_deccv">0.5</span></div>
+      <input type="range" class="msl" id="decCurve" min="0.1" max="1.0" step="0.1" value="0.5">
+      <div class="mp-label">Velocity 스케일 <span class="vv" id="v_vs">1.0</span></div>
+      <input type="range" class="msl" id="velScale" min="0.5" max="1.5" step="0.1" value="1.0">
+    </div>
+
+    <!-- 결과 탭 -->
+    <div class="tab-section" id="tab-result">
+      <div class="mp-title">통계</div>
+      <div class="mp-stat-grid">
+        <div class="mp-stat"><div class="sk">Notes</div><div class="sv" id="s_notes">—</div></div>
+        <div class="mp-stat"><div class="sk">Cells</div><div class="sv" id="s_cells">—</div></div>
+        <div class="mp-stat"><div class="sk">Lines</div><div class="sv" id="s_lines">—</div></div>
+        <div class="mp-stat"><div class="sk">Duration</div><div class="sv" id="s_dur">—</div></div>
+        <div class="mp-stat" style="grid-column:span 2"><div class="sk">BPM</div><div class="sv" id="s_bpm">—</div></div>
+      </div>
+      <div class="mp-title" style="margin-top:2px;">Line 목록</div>
+      <div class="line-list" id="lineList"></div>
+      <div style="display:flex;gap:5px;margin-top:2px;">
+        <button class="mp-btn mp-btn-grn" id="btnExportMidi" onclick="doMidiSave()" disabled style="flex:2">Final MIDI 저장</button>
+        <button class="mp-btn mp-btn-sec" id="btnExportJson" onclick="doJsonSave()" disabled style="flex:1">JSON</button>
+      </div>
+      <div class="mp-title" style="margin-top:2px;">로그</div>
+      <div class="mp-console" id="logBox"></div>
+    </div>
+
+    <!-- 전선 탭 -->
+    <div class="tab-section" id="tab-wire">
+      <div class="mp-title">전선 (Wire Layer)</div>
+
+      <div class="mp-label" style="font-weight:700;">적용 방식</div>
+      <div id="wire-mode-btns" style="display:flex;flex-direction:column;gap:3px;margin-bottom:4px;">
+        <button class="wmbtn act" data-wm="full"  onclick="setWireMode('full')">① 전체 연결 — 동일 피복으로 전체 덮기</button>
+        <button class="wmbtn"     data-wm="pitch" onclick="setWireMode('pitch')">② 피치별 — 음역 위상에 따라 투명도 조절</button>
+        <button class="wmbtn"     data-wm="time"  onclick="setWireMode('time')">③ 타임라인별 — 구간마다 피복 개별 조절</button>
+      </div>
+
+      <div class="mp-label">피복 색상</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;" id="wire-color-swatches">
+        <div class="wcs act" data-col="#f7f4ec" style="background:#f7f4ec;border:1.5px solid #2a2620;"></div>
+        <div class="wcs" data-col="#2a2620" style="background:#2a2620;"></div>
+        <div class="wcs" data-col="#5b6ea8" style="background:#5b6ea8;"></div>
+        <div class="wcs" data-col="#3d8f6a" style="background:#3d8f6a;"></div>
+        <div class="wcs" data-col="#a06b30" style="background:#a06b30;"></div>
+        <div class="wcs" data-col="#7a4a8a" style="background:#7a4a8a;"></div>
+      </div>
+
+      <div id="wire-opt-full">
+        <div class="mp-label">피복 투명도 <span class="vv" id="v_wire_alpha">0.92</span></div>
+        <input type="range" class="msl" id="wireAlpha" min="0" max="1" step="0.01" value="0.92">
+        <div class="mp-label">피복 두께 <span class="vv" id="v_wire_w">자동</span></div>
+        <input type="range" class="msl" id="wireWidth" min="0" max="40" step="1" value="0">
+        <div style="font-size:.58rem;color:#9a9490;margin-top:-3px;">0 = Cell 크기 기준 자동</div>
+      </div>
+
+      <div id="wire-opt-pitch" style="display:none;">
+        <div class="mp-label">고음 투명도 <span class="vv" id="v_wire_hi_a">0.30</span></div>
+        <input type="range" class="msl" id="wireHiAlpha" min="0" max="1" step="0.01" value="0.30">
+        <div class="mp-label">저음 투명도 <span class="vv" id="v_wire_lo_a">0.95</span></div>
+        <input type="range" class="msl" id="wireLoAlpha" min="0" max="1" step="0.01" value="0.95">
+        <div class="mp-label">기준 피치 <span class="vv" id="v_wire_psplit">C4</span></div>
+        <input type="range" class="msl" id="wirePitchSplit" min="36" max="96" step="1" value="60">
+        <div style="font-size:.58rem;color:#9a9490;margin-top:-3px;">기준 음보다 높으면 고음 투명도</div>
+      </div>
+
+      <div id="wire-opt-time" style="display:none;">
+        <div class="mp-label">구간 수 <span class="vv" id="v_wire_segs">4</span></div>
+        <input type="range" class="msl" id="wireSegCount" min="2" max="8" step="1" value="4">
+        <div id="wire-seg-sliders" style="display:flex;flex-direction:column;gap:2px;margin-top:2px;"></div>
+      </div>
+
+      <div style="height:1px;background:rgba(20,15,5,0.09);margin:5px 0;"></div>
+      <button class="mp-btn mp-btn-pri" id="btn-apply-wire" onclick="applyWireLayer()" disabled>선 입히기</button>
+      <div style="display:flex;gap:5px;">
+        <button class="mp-btn mp-btn-sec" id="btn-merge-wire" onclick="mergeWireLayer()" disabled style="flex:1">레이어 병합</button>
+        <button class="mp-btn mp-btn-sec" id="btn-remove-wire" onclick="removeWireLayer()" disabled style="flex:1">전선 제거</button>
+      </div>
+      <div id="wire-status" style="font-size:.6rem;color:#9a9490;font-family:monospace;min-height:13px;margin-top:2px;"></div>
+    </div>
+  </div>
+
+  <!-- 하단 툴바 -->
+  <div id="sidebar-tools">
+    <div class="tool-row">
+      <button class="tbtn" id="btn-play" onclick="togglePlay()">▶<span class="lbl">Play</span></button>
+      <div class="tsep"></div>
+      <button class="tbtn" id="btn-export" onclick="doMidiSave()" disabled>⬇<span class="lbl">Export</span></button>
+    </div>
+    <div id="edit-tools">
+      <div style="height:1px;background:rgba(20,15,5,0.08);margin:2px 0;"></div>
+      <div class="tool-row">
+        <button class="tbtn act" id="btn-draw"  onclick="setTool('draw')">✒<span class="lbl">Draw</span></button>
+        <button class="tbtn"     id="btn-catch" onclick="setTool('catch')">⊕<span class="lbl">Catch</span></button>
+        <div class="tsep"></div>
+        <button class="tbtn"     id="btn-undo"  onclick="undo()">↶<span class="lbl">Undo</span></button>
+        <div class="tsep"></div>
+        <div id="instr-toggle">
+          <button class="ibtn act" id="ibtn-piano"  onclick="setInstrument('piano')">🎹</button>
+          <button class="ibtn"     id="ibtn-violin" onclick="setInstrument('violin')">🎻</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 캔버스 영역 ════ -->
+<div id="paper-wrap">
+  <canvas id="paper"></canvas>
+  <div class="pcursor" id="pcursor"></div>
+
+  <!-- 드래그앤드롭 오버레이 -->
+  <div id="drop-overlay">🎵 여기에 MIDI 파일을 놓으세요</div>
+
+  <!-- 빈 화면 안내 -->
+  <div id="drop-hint">
+    <div class="dh-text">MIDI 파일을 불러오면 선으로 시각화됩니다<br>좌측 패널 → 입력 탭에서 파일을 선택하거나<br>여기에 드래그앤드롭 하세요</div>
+    <div class="dh-key">데모 보기 → 입력 탭 → [데모] 버튼</div>
+  </div>
+
+  <!-- 상단 모드바 -->
+  <div id="mode-bar">
+    <button class="mbtn act" id="mbtn-view" onclick="setAppMode('view')">View</button>
+    <button class="mbtn"     id="mbtn-note" onclick="setAppMode('note')">Note</button>
+    <button class="mbtn"     id="mbtn-edit" onclick="setAppMode('edit')">Edit</button>
+    <button class="mbtn"     id="mbtn-wire" onclick="setAppMode('wire')">Wire</button>
+  </div>
+
+  <!-- LOD 배지 -->
+  <div id="lod-badge"></div>
+
+  <!-- Gesture 범례 -->
+  <div id="gest-legend">
+    <div class="gl-item"><div class="gl-dot" style="background:#facc15"></div>ATK</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#4ade80"></div>HLD</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#c084fc"></div>VIB</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#f97316"></div>GLI</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#60a5fa"></div>DEC</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#94a3b8"></div>TAIL</div>
+    <div class="gl-item"><div class="gl-dot" style="background:#f87171"></div>NOISE</div>
+  </div>
+
+  <!-- 힌트 -->
+  <div id="hint"></div>
+
+  <!-- 진행바 -->
+  <div id="prog-wrap">
+    <div id="prog-label">분석 중…</div>
+    <div id="prog-track"><div id="prog-bar"></div></div>
+  </div>
+
+  <!-- 미니맵 -->
+  <div id="minimap-wrap">
+    <canvas id="minimap-canvas" width="280" height="140"></canvas>
+    <div id="minimap-vp"></div>
+  </div>
+
+  <!-- 단축키 힌트 -->
+  <div id="shortcuts">
+    Space: 재생/정지 &nbsp; Ctrl+Z: 되돌리기<br>
+    휠: 줌 &nbsp; 드래그: 이동<br>
+    V: View &nbsp; N: Note &nbsp; E: Edit
+  </div>
+</div>
+
+<!-- ════ JS 로드 순서 ════
+     의존성 순서:
+     1. state    — 전역 변수, 상수, 뷰포트 함수
+     2. midi     — 파서, Cell/Line 빌드 (state에 의존)
+     3. phase    — Phase 계산 틀 (state에 의존)
+     4. tracking — Tracking 계산 틀 (phase에 의존)
+     5. flow     — Flow Line 변환 틀 (tracking에 의존)
+     6. render   — 캔버스 그리기 (state + midi에 의존)
+     7. playback — 오디오 (state + render에 의존)
+     8. wire     — 전선 레이어 (state + render에 의존)
+     9. ui       — 버튼/슬라이더/파일 이벤트 (모두에 의존)
+    10. main     — 초기화 + 마우스 이벤트 (모두에 의존)
+════ -->
+<script src="js/state.js"></script>
+<script src="js/midi.js"></script>
+<script src="js/phase.js"></script>
+<script src="js/tracking.js"></script>
+<script src="js/flow.js"></script>
+<script src="js/render.js"></script>
+<script src="js/playback.js"></script>
+<script src="js/wire.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
